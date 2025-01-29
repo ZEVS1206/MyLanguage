@@ -1,0 +1,36 @@
+in
+pop ax
+
+push 1
+pop bx
+
+push 1
+pop cx
+
+push 0
+je ax B=0:
+push 1
+je ax B=0:
+
+
+A=0:
+push 1
+push bx
+add
+pop bx
+push bx
+push cx
+mul
+pop cx
+push bx
+ja ax A=0:
+push cx
+out
+hlt
+
+B=0:
+push 1
+out
+hlt
+
+
