@@ -56,7 +56,7 @@ enum Value_type
 enum Variables
 {
     NOT_A_VAR = 0,
-    VAR_X     = 1
+    VAR       = 1
 };
 
 enum Operations

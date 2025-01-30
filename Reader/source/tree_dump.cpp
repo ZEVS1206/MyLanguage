@@ -78,7 +78,7 @@ static char * get_var(Variables var)
 {
     switch(var)
     {
-        case VAR_X:     return "x";
+        case VAR:     return "x";
         case NOT_A_VAR: return "NOT A VARIABLE!";
         default:        return "UNKNOWN VARIABLE!";
     }

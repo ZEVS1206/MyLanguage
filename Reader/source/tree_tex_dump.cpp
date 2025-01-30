@@ -27,7 +27,7 @@ const char * transform_variable_to_str(struct Value value)
 {
     switch(value.variable)
     {
-        case VAR_X:     return "x";    break;
+        case VAR:     return "x";    break;
         case NOT_A_VAR: return "NOT A VAR"; break;
     }
     return "NOT A VAR";

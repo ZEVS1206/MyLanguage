@@ -17,7 +17,7 @@ int main()
         fprintf(stderr, "error = %d\n", error);
         return error;
     }
-    error = get_tree_from_file(&tree, "../../test_file.rt");
+    error = get_tree_from_file(&tree, "source/input.txt"); //"../../test_file.rt");
     if (error != NO_ERRORS)
     {
         fprintf(stderr, "error = %d\n", error);
