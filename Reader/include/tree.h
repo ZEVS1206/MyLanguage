@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define ON_DEBUG(...) __VA_ARGS__
@@ -50,7 +50,8 @@ enum Value_type
     VARIABLE     = 1,
     NUMBER       = 2,
     OPERATION    = 3,
-    FUNCTION     = 4
+    FUNCTION     = 4,
+    OPERATOR     = 5
 };
 
 enum Variables
@@ -69,6 +70,24 @@ enum Operations
     OP_DEG    = 5
 };
 
+enum Programm_operators
+{
+    NOT_AN_OPERATOR     = 0,
+    OPERATOR_IF         = 1,
+    OPERATOR_WHILE      = 2,
+    OPERATOR_ASSIGNMENT = 3
+};
+enum Comparison_operations
+{
+    NOT_A_COMP_OP    = 0,
+    OP_EQUAL         = 1,
+    OP_MORE          = 2,
+    OP_LESS          = 3,
+    OP_MORE_OR_EQUAL = 4,
+    OP_LESS_OR_EQUAL = 5,
+    OP_NOT_EQUAL     = 6
+};
+
 struct Value
 {
     Value_type type;
@@ -77,6 +96,8 @@ struct Value
         double number;
         Operations operation;
         Variables variable;
+        Programm_operators operator_;
+        Comparison_operations comp_operation;
         Function_name function;
     };
 };
