@@ -30,7 +30,7 @@ int main()
     }
     tree.tmp_root = tree.root;
     tree.error = NO_ERRORS;
-    graphic_dump(&tree, "example");
+    //graphic_dump(&tree, "example");
     if (tree.error != NO_ERRORS)
     {
         fprintf(stderr, "error = %d\n", tree.error);

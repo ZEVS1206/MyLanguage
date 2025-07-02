@@ -8,7 +8,9 @@
 #include "tree_tex_dump.h"
 
 //static void parse_information_from_file_by_staples(struct Node *root, char **buffer, char *end_pointer);
-static void parse_information_from_file_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
+static bool isbracket(const char symbol);
+static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer);
+static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
 static void get_number_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
 static void get_variable_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
 static void get_function_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
@@ -33,6 +35,21 @@ static void bypass_of_tree(struct Node *root);
 static void print_lexical_analyze_array(struct Node *lexical_analyze_array, size_t size);
 static bool is_comparison_operation(const char *str);
 
+static bool isbracket(const char symbol)
+{
+    if (symbol == '(' ||
+        symbol == ')' ||
+        symbol == '{' ||
+        symbol == '}' ||
+        symbol == '[' ||
+        symbol == ']')
+        {
+            return true;
+        }
+    return false;
+}
+
+
 static void print_lexical_analyze_array(struct Node *lexical_analyze_array, size_t size)
 {
     for (size_t index = 0; index < size; index++)
@@ -48,10 +65,23 @@ static void print_lexical_analyze_array(struct Node *lexical_analyze_array, size
         {
             printf("operation = %d\n", (lexical_analyze_array[index].value).operation);
         }
-
+        else if ((lexical_analyze_array[index].value).type == OPERATOR)
+        {
+            printf("operator = %d\n", (lexical_analyze_array[index].value).operator_);
+        }
+        else if ((lexical_analyze_array[index].value).type == COMP_OPERATION)
+        {
+            printf("comp_operation = %d\n", (lexical_analyze_array[index].value).comp_operation);
+        }
+        else if ((lexical_analyze_array[index].value).type == VARIABLE)
+        {
+            printf("variable = %s\n", (lexical_analyze_array[index].value).variable_name);
+        }
     }
     return;
 }
+
+
 
 
 static void bypass_of_tree(struct Node *root)
@@ -166,27 +196,34 @@ static void transform_to_comparison_operation(const char *str, struct Value *val
     {
         return;
     }
-    if (strcasecmp(str, "==") == 0)
+    size_t len = 0;
+    while (str[len] != '\0')
+    {
+        len++;
+    }
+    len--;
+    //printf("len of str = %lu\n", len);
+    if (len == 2 && str[0] == '=')
     {
         value->comp_operation = OP_EQUAL;
     }
-    else if (strcasecmp(str, ">") == 0)
+    else if (len == 1 && str[0] == '>')//strcasecmp(str, ">") == 0)
     {
         value->comp_operation = OP_MORE;
     }
-    else if (strcasecmp(str, "<") == 0)
+    else if (len == 1 && str[0] == '<')//strcasecmp(str, "<") == 0)
     {
         value->comp_operation = OP_LESS;
     }
-    else if (strcasecmp(str, ">=") == 0)
+    else if (len == 2 && str[0] == '>')//strcasecmp(str, ">=") == 0)
     {
         value->comp_operation = OP_MORE_OR_EQUAL;
     }
-    else if (strcasecmp(str, "<=") == 0)
+    else if (len == 2 && str[0] == '<')//strcasecmp(str, "<=") == 0)
     {
         value->comp_operation = OP_LESS_OR_EQUAL;
     }
-    else if (strcasecmp(str, "!=") == 0)
+    else if (len == 2 && str[0] == '!')//strcasecmp(str, "!=") == 0)
     {
         value->comp_operation = OP_NOT_EQUAL;
     }
@@ -194,12 +231,17 @@ static void transform_to_comparison_operation(const char *str, struct Value *val
     {
         value->comp_operation = NOT_A_COMP_OP;
     }
+    if (value->comp_operation != NOT_A_COMP_OP)
+    {
+        value->type = COMP_OPERATION;
+    }
     return;
 }
 
 static bool is_comparison_operation(const char *str)
 {
     struct Value value = {};
+    //printf("str = %s\n", str);
     transform_to_comparison_operation(str, &value);
     if (value.comp_operation != NOT_A_COMP_OP)
     {
@@ -254,7 +296,8 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
 
     tree->tmp_root = tree->root;
     int index = 0;
-    parse_information_from_file_by_recursive_descent(&lexical_analyze_array, &buffer, end_pointer, &index);
+    parse_information_from_file_to_lexical_analyze_array(&lexical_analyze_array, &buffer, end_pointer);
+    //parse_information_from_file_by_recursive_descent(&lexical_analyze_array, &buffer, end_pointer, &index);
     print_lexical_analyze_array(old_pointer, size_of_file);
     //printf("index = %d\n", index);
     //bypass_of_tree(tree->root);
@@ -268,7 +311,7 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
 static char * get_value_from_file(char *str, size_t size_of_str, char *buffer, char *end_pointer)
 {
     size_t index = 0;
-    while (buffer < end_pointer && (isalnum(*buffer) || *buffer == '.') && index < size_of_str)
+    while (buffer < end_pointer && (isalnum(*buffer) || *buffer == '.') && index < size_of_str && *buffer != ';')
     {
         str[index] = *buffer;
         index++;
@@ -284,10 +327,15 @@ static char * get_value_from_file(char *str, size_t size_of_str, char *buffer, c
 static char * get_operation_from_file(char *str, size_t size_of_str, char *buffer, char *end_pointer)
 {
     size_t index = 0;
-    while (buffer < end_pointer && (!isalnum(*buffer)) && index < size_of_str)
+    while (buffer < end_pointer && (!isalnum(*buffer) && *buffer != ';' && !isspace(*buffer)) && index < size_of_str)
     {
         str[index] = *buffer;
         index++;
+        if (isbracket(*buffer))
+        {
+            buffer++;
+            break;
+        }
         buffer++;
     }
     if (index < size_of_str - 1)
@@ -474,10 +522,16 @@ static void get_if_or_while_operator(struct Node **lexical_analyze_array, char *
     (*buffer)++;
     (*index)++;
     get_operator(lexical_analyze_array, buffer, end_pointer, index);
+    old = *buffer;
+    *buffer = skip_spaces(*buffer, end_pointer);
+    *index += *buffer - old;
+    //printf("*buffer[0] = %c\n", *buffer[0]);
     if (*buffer[0] != '}')
     {
         syntax_error(buffer, index);
     }
+    (*buffer)++;
+    //printf("*buffer[0] = %c\n", *buffer[0]);
     return;
 }
 
@@ -496,6 +550,12 @@ static void get_operator(struct Node **lexical_analyze_array, char **buffer, cha
     char str[100] = {0};
     old = *buffer;
     *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
+    if (*buffer[0] == ';')
+    {
+        ((*lexical_analyze_array[0]).value).type = OPERATOR;
+        ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_END;
+        return;
+    }
     if (strcasecmp(str, "if") == 0 || strcasecmp(str, "while") == 0)
     {
         ((*lexical_analyze_array[0]).value).type = OPERATOR;
@@ -947,7 +1007,7 @@ static void get_expression_with_plus_or_minus(struct Node **lexical_analyze_arra
 }
 
 
-static void parse_information_from_file_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
 {
     if (*buffer == end_pointer)
     {
@@ -958,9 +1018,214 @@ static void parse_information_from_file_by_recursive_descent(struct Node **lexic
     get_operator(lexical_analyze_array, buffer, end_pointer, index);
     //get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
     //printf("general root = %p\n", *root);
+    //printf("*buffer[0] = %c\n", *buffer[0]);
     if (*buffer[0] != '$')
     {
+        //printf("Here!\n");
         syntax_error(buffer, index);
     }
     return;
+}
+
+static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer)
+{
+    if (*buffer == end_pointer)
+    {
+        return;
+    }
+    while (*buffer != end_pointer && *buffer[0] != '$')
+    {
+        *buffer = skip_spaces(*buffer, end_pointer);
+        ON_DEBUG(printf("*buffer[0] = %c\n", *buffer[0]);)
+        if (*buffer[0] == ';')
+        {
+            ON_DEBUG(printf("it is operator ;\n");)
+            ON_DEBUG(getchar();)
+            ((*lexical_analyze_array[0]).value).type = OPERATOR;
+            ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_END;
+            (*lexical_analyze_array)++;
+            (*buffer)++;
+        }
+        else if (isalpha(*buffer[0]))
+        {
+            ON_DEBUG(printf("it is operator if or while or variable or function\n");)
+            ON_DEBUG(getchar();)
+            char str[100] = {};
+            *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
+            if (strcasecmp(str, "if") == 0)
+            {
+                ON_DEBUG(printf("it is operator if\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_IF;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            if (strcasecmp(str, "while") == 0)
+            {
+                ON_DEBUG(printf("it is operator while\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_WHILE;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            ON_DEBUG(printf("it is a variable\n");)
+            ON_DEBUG(getchar();)
+            ((*lexical_analyze_array[0]).value).type = VARIABLE;
+            size_t len_of_str = strlen(str);
+            strncpy(((*lexical_analyze_array[0]).value).variable_name, str, len_of_str);
+            (*lexical_analyze_array)++;
+            continue;
+        }
+        else if (isdigit(*buffer[0]))
+        {
+            ON_DEBUG(printf("it is a number\n");)
+            ON_DEBUG(getchar();)
+            char str[100] = {};
+            *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
+            char *end = NULL;
+            double value = strtod(str, &end);
+            ((*lexical_analyze_array[0]).value).type = NUMBER;
+            ((*lexical_analyze_array[0]).value).number = value;
+            (*lexical_analyze_array)++;
+        }
+        else
+        {
+            char str[100] = {};
+            *buffer = get_operation_from_file(str, 100, *buffer, end_pointer);
+            printf("str = %s\n", str);
+            if (strcasecmp(str, "=") == 0)
+            {
+                ON_DEBUG(printf("it is operator assignment\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ASSIGNMENT;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            if (strcasecmp(str, "(") == 0)
+            {
+                ON_DEBUG(printf("it is operator round bracket open\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ROUND_BRACKET_OPEN;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            else if (strcasecmp(str, ")") == 0)
+            {
+                ON_DEBUG(printf("it is operator round bracket close\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ROUND_BRACKET_CLOSE;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            else if (strcasecmp(str, "{") == 0)
+            {
+                ON_DEBUG(printf("it is operator curly bracket open\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_CURLY_BRACKET_OPEN;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            else if (strcasecmp(str, "}") == 0)
+            {
+                ON_DEBUG(printf("it is operator curly bracket close\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_CURLY_BRACKET_CLOSE;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            else if (strcasecmp(str, "[") == 0)
+            {
+                ON_DEBUG(printf("it is operator square bracket open\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_SQUARE_BRACKET_OPEN;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            else if (strcasecmp(str, "]") == 0)
+            {
+                ON_DEBUG(printf("it is operator square bracket close\n");)
+                ON_DEBUG(getchar();)
+                ((*lexical_analyze_array[0]).value).type = OPERATOR;
+                ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_SQUARE_BRACKET_CLOSE;
+                (*lexical_analyze_array)++;
+                continue;
+            }
+            ON_DEBUG(printf("it is an operation\n");)
+            ON_DEBUG(getchar();)
+            ((*lexical_analyze_array[0]).value).type = COMP_OPERATION;
+            if (strcasecmp(str, ">=") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_MORE_OR_EQUAL;
+                (*lexical_analyze_array)++;
+            }
+            else if (strcasecmp(str, "<=") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_LESS_OR_EQUAL;
+                (*lexical_analyze_array)++;
+            }
+            else if (strcasecmp(str, ">") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_MORE;
+                (*lexical_analyze_array)++;
+            }
+            else if (strcasecmp(str, "<") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_LESS;
+                (*lexical_analyze_array)++;
+            }
+            else if (strcasecmp(str, "!=") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_NOT_EQUAL;
+                (*lexical_analyze_array)++;
+            }
+            else if (strcasecmp(str, "==") == 0)
+            {
+                ((*lexical_analyze_array[0]).value).comp_operation = OP_EQUAL;
+                (*lexical_analyze_array)++;
+            }
+            else
+            {
+                ((*lexical_analyze_array[0]).value).type = OPERATION;
+                if (str[0] == '+')
+                {
+                    ((*lexical_analyze_array[0]).value).operation = OP_ADD;
+                    (*lexical_analyze_array)++;
+                }
+                else if (str[0] == '-')
+                {
+                    ((*lexical_analyze_array[0]).value).operation = OP_SUB;
+                    (*lexical_analyze_array)++;
+                }
+                else if (str[0] == '*')
+                {
+                    ((*lexical_analyze_array[0]).value).operation = OP_MUL;
+                    (*lexical_analyze_array)++;
+                }
+                else if (str[0] == '/')
+                {
+                    ((*lexical_analyze_array[0]).value).operation = OP_DIV;
+                    (*lexical_analyze_array)++;
+                }
+                else if (str[0] == '^')
+                {
+                    ((*lexical_analyze_array[0]).value).operation = OP_DEG;
+                    (*lexical_analyze_array)++;
+                }
+                else
+                {
+                    printf("Syntax_Error! Unknown type of toke!\n");
+                    abort();
+                }
+            }
+        }
+
+    }
 }

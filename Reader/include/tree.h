@@ -46,12 +46,13 @@ enum Function_name
 
 enum Value_type
 {
-    UNKNOWN_TYPE = 0,
-    VARIABLE     = 1,
-    NUMBER       = 2,
-    OPERATION    = 3,
-    FUNCTION     = 4,
-    OPERATOR     = 5
+    UNKNOWN_TYPE   = 0,
+    VARIABLE       = 1,
+    NUMBER         = 2,
+    OPERATION      = 3,
+    FUNCTION       = 4,
+    OPERATOR       = 5,
+    COMP_OPERATION = 6
 };
 
 enum Variables
@@ -72,11 +73,19 @@ enum Operations
 
 enum Programm_operators
 {
-    NOT_AN_OPERATOR     = 0,
-    OPERATOR_IF         = 1,
-    OPERATOR_WHILE      = 2,
-    OPERATOR_ASSIGNMENT = 3
+    NOT_AN_OPERATOR               = 0,
+    OPERATOR_IF                   = 1,
+    OPERATOR_WHILE                = 2,
+    OPERATOR_ASSIGNMENT           = 3,
+    OPERATOR_END                  = 4,
+    OPERATOR_ROUND_BRACKET_OPEN   = 5,
+    OPERATOR_ROUND_BRACKET_CLOSE  = 6,
+    OPERATOR_CURLY_BRACKET_OPEN   = 7,
+    OPERATOR_CURLY_BRACKET_CLOSE  = 8,
+    OPERATOR_SQUARE_BRACKET_OPEN  = 9,
+    OPERATOR_SQUARE_BRACKET_CLOSE = 10
 };
+
 enum Comparison_operations
 {
     NOT_A_COMP_OP    = 0,
@@ -96,6 +105,7 @@ struct Value
         double number;
         Operations operation;
         Variables variable;
+        char variable_name[100];
         Programm_operators operator_;
         Comparison_operations comp_operation;
         Function_name function;
