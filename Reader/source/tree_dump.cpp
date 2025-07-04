@@ -17,6 +17,8 @@ static void get_value(struct Value *value, char *str);
 static char * get_operation(Operations operation);
 static char * get_var(Variables var);
 static const char * get_function(Function_name function);
+static const char * get_operator(Programm_operators operator_);
+static const char * get_comp_operation(Comparison_operations operation);
 
 static Errors_of_tree create_command_for_console(const char *file_in_name, const char *file_out_name)
 {
@@ -102,11 +104,13 @@ static char * get_type_name(Value_type type)
 {
     switch(type)
     {
-        case VARIABLE:  return "VARIABLE";
-        case NUMBER:    return "NUMBER";
-        case OPERATION: return "OPERATION";
-        case FUNCTION:  return "FUNCTION";
-        default:        return "UNKNOWN TYPE!";
+        case VARIABLE:       return "VARIABLE";
+        case NUMBER:         return "NUMBER";
+        case OPERATION:      return "OPERATION";
+        case FUNCTION:       return "FUNCTION";
+        case OPERATOR:       return "OPERATOR";
+        case COMP_OPERATION: return "COMP_OPERATION";
+        default:             return "UNKNOWN TYPE!";
     }
 }
 static const char * get_function(Function_name function)
@@ -119,6 +123,32 @@ static const char * get_function(Function_name function)
         }
     }
     return "NOT A FUNCTION";
+}
+
+static const char * get_operator(Programm_operators operator_)
+{
+    switch(operator_)
+    {
+        case OPERATOR_IF:         return "if";
+        case OPERATOR_WHILE:      return "while";
+        case OPERATOR_ASSIGNMENT: return "=";
+        case OPERATOR_END:        return ";";
+        default:                  return "UNKNOWN OPERATOR!";
+    }
+}
+
+static const char * get_comp_operation(Comparison_operations operation)
+{
+    switch (operation)
+    {
+        case OP_LESS:          return "<";
+        case OP_EQUAL:         return "==";
+        case OP_LESS_OR_EQUAL: return "<=";
+        case OP_MORE:          return ">";
+        case OP_MORE_OR_EQUAL: return ">=";
+        case OP_NOT_EQUAL:     return "!=";
+        default:               return "UNKNOWN COMP OPERATION!";
+    }
 }
 
 static void get_value(struct Value *value, char *str)
@@ -138,8 +168,8 @@ static void get_value(struct Value *value, char *str)
     }
     else if (value->type == VARIABLE)
     {
-        char *ans = get_var(value->variable);
-        memcpy(str, ans, strlen(ans));
+        //char *ans = get_var(value->variable);
+        memcpy(str, value->variable_name, strlen(value->variable_name));
         return;
     }
     else if (value->type == FUNCTION)
@@ -147,6 +177,16 @@ static void get_value(struct Value *value, char *str)
         const char *ans = get_function(value->function);
         memcpy(str, ans, strlen(ans));
         return;
+    }
+    else if (value->type == OPERATOR)
+    {
+        const char *ans = get_operator(value->operator_);
+        memcpy(str, ans, strlen(ans));
+    }
+    else if (value->type == COMP_OPERATION)
+    {
+        const char *ans = get_comp_operation(value->comp_operation);
+        memcpy(str, ans, strlen(ans));
     }
     else
     {

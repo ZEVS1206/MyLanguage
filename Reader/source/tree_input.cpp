@@ -9,20 +9,20 @@
 
 //static void parse_information_from_file_by_staples(struct Node *root, char **buffer, char *end_pointer);
 static bool isbracket(const char symbol);
-static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer);
-static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_number_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_variable_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
+static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *len_of_lexical_analyze_array);
+static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index);
+static void get_number(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_function_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_variable_or_function_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_staples_expression_or_number_or_variable(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_expression_with_plus_or_minus(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_expression_with_mul_or_div(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_expression_with_pow(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_expression_with_comparison_operations(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_assignment_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
-static void get_if_or_while_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index);
+static void get_variable_or_function_from_file(struct Node **root, struct Node **lexical_analyze_array, struct Node *end_pointer, int *index, struct Node *parent);
+static void get_staples_expression_or_number_or_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_expression_with_plus_or_minus(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_expression_with_mul_or_div(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_expression_with_pow(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_expression_with_comparison_operations(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_assignment_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_if_or_while_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void syntax_error(char **buffer, int *index);
 static size_t get_size_of_file(FILE *file_pointer);
 static char * get_value_from_file(char *str, size_t size_of_str, char *buffer, char *end_pointer);
@@ -296,9 +296,18 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
 
     tree->tmp_root = tree->root;
     int index = 0;
-    parse_information_from_file_to_lexical_analyze_array(&lexical_analyze_array, &buffer, end_pointer);
-    //parse_information_from_file_by_recursive_descent(&lexical_analyze_array, &buffer, end_pointer, &index);
-    print_lexical_analyze_array(old_pointer, size_of_file);
+    int len_of_lexical_analyze_array = 0;
+    parse_information_from_file_to_lexical_analyze_array(&lexical_analyze_array, &buffer, end_pointer, &len_of_lexical_analyze_array);
+    //lexical_analyze_array--;
+    // printf("last position:\ntype = %d\n", ((lexical_analyze_array[2]).value).type);
+    struct Node *new_end_pointer = &(lexical_analyze_array[0]);
+    lexical_analyze_array = old_pointer;
+    printf("last position:\ntype = %d\n", ((lexical_analyze_array[2]).value).type);
+    printf("len of lexical analyze array = %d\n", len_of_lexical_analyze_array);
+    print_lexical_analyze_array(old_pointer, len_of_lexical_analyze_array);
+    parse_information_from_lexical_analyze_array_by_recursive_descent(&(tree->root),lexical_analyze_array, len_of_lexical_analyze_array, &index);
+    //print_lexical_analyze_array(old_pointer, size_of_file);
+    // printf("index:%d\nnode_type:%d\n", 0, ((lexical_analyze_array[0]).value).type);
     //printf("index = %d\n", index);
     //bypass_of_tree(tree->root);
     //printf("tree->root = %p\n", tree->root);
@@ -344,7 +353,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
     }
     return buffer;
 }
-//
+
 // static void parse_information_from_file_by_staples(struct Node *root, char **buffer, char *end_pointer)
 // {
 //     int verdict = 0;
@@ -353,7 +362,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
 //     {
 //         return;
 //     }
-//
+
 //     if (*buffer[0] == '(')
 //     {
 //         (*buffer)++;
@@ -393,7 +402,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
 //             verdict = transform_to_function(str, &(root->value));
 //             (*buffer)++;
 //         }
-//
+
 //         *buffer = skip_spaces(*buffer, end_pointer);
 //         (*buffer)++;
 //         if (verdict == 0)
@@ -420,7 +429,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
 //             return;
 //         }
 //     }
-//
+
 //     if (isdigit(*buffer[0]))
 //     {
 //         char str[100];
@@ -439,7 +448,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
 //         //int verdict = transform_to_function(str, &(root->value));
 //         transform_to_variable(str, &(root->value));
 //     }
-//
+
 //     if (*buffer[0] == ')')
 //     {
 //         (*buffer)++;
@@ -454,190 +463,173 @@ static void syntax_error(char **buffer, int *index)
 }
 
 
-static void get_assignment_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_assignment_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    get_variable_from_file(lexical_analyze_array, buffer, end_pointer, index);
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    if (*buffer[0] != '=')
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
+    get_variable(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    // if (*buffer[0] != '=')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ASSIGNMENT)
     {
-        syntax_error(buffer, index);
+        fprintf(stderr, "Syntax Error! There is no symbol of assignment");
+        abort();
     }
-    ((*lexical_analyze_array[0]).value).type = OPERATOR;
-    ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ASSIGNMENT;
-    (*lexical_analyze_array)++;
-    (*buffer)++;
+    struct Value new_node_value = (lexical_analyze_array[*index]).value;
     (*index)++;
     ON_DEBUG(printf("go to get_expression_with_plus_or_minus\n");)
     ON_DEBUG(getchar();)
-    get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
-    if (*buffer[0] != ';')
-    {
-        syntax_error(buffer, index);
-    }
-    else
-    {
-        (*buffer)++;
-    }
+    get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    printf("Here!\n");
+    Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+    // if (*buffer[0] != ';')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    // else
+    // {
+    //     (*buffer)++;
+    // }
     return;
 }
 
-static void get_if_or_while_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_if_or_while_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    if (*buffer[0] != '(')
-    {
-        syntax_error(buffer, index);
-    }
-    (*buffer)++;
+    // if (*buffer[0] != '(')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
+    struct Value new_node_value = (lexical_analyze_array[*index]).value;
     (*index)++;
-    get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
-    if (*buffer[0] != ')')
+    if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_OPEN)
     {
-        syntax_error(buffer, index);
+        fprintf(stderr, "Syntax Error! There is no round bracket after if\n");
+        abort();
     }
-    (*buffer)++;
     (*index)++;
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    if (*buffer[0] != '{')
+    //get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
+    get_expression_with_comparison_operations(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_CLOSE)
     {
-        syntax_error(buffer, index);
+        fprintf(stderr, "Syntax Error! There is no close round bracket after condition of if\n");
+        abort();
     }
-    (*buffer)++;
     (*index)++;
-    get_operator(lexical_analyze_array, buffer, end_pointer, index);
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
+    // if (*buffer[0] != ')')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    // if (*buffer[0] != '{')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_CURLY_BRACKET_OPEN)
+    {
+        fprintf(stderr, "Syntax Error! There is no open curly bracket before the main body of if\n");
+        abort();
+    }
+    (*index)++;
+    get_operator(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     //printf("*buffer[0] = %c\n", *buffer[0]);
-    if (*buffer[0] != '}')
+    // if (*buffer[0] != '}')
+    // {
+    //     syntax_error(buffer, index);
+    // }
+    if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_CURLY_BRACKET_CLOSE)
     {
-        syntax_error(buffer, index);
+        fprintf(stderr, "Syntax Error! There is no close curly bracket after the main body of if\n");
+        abort();
     }
-    (*buffer)++;
+    (*index)++;
+    Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
     //printf("*buffer[0] = %c\n", *buffer[0]);
     return;
 }
 
 
 
-static void get_operator(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    int old_index = *index;
-    char str[100] = {0};
-    old = *buffer;
-    *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-    if (*buffer[0] == ';')
+    struct Node *left_node  = NULL;
+    struct Node *right_node = NULL;
+    //get_operator(&left_node, lexical_analyze_array, end_pointer, index, *root);
+    // (*index)++;
+    // (*lexical_analyze_array)++;
+    if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
+        (((lexical_analyze_array[*index]).value).operator_ == OPERATOR_IF ||
+         ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_WHILE))
     {
-        ((*lexical_analyze_array[0]).value).type = OPERATOR;
-        ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_END;
-        return;
-    }
-    if (strcasecmp(str, "if") == 0 || strcasecmp(str, "while") == 0)
-    {
-        ((*lexical_analyze_array[0]).value).type = OPERATOR;
-        if (strcasecmp(str, "if") == 0)
-        {
-            ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_IF;
-        }
-        else
-        {
-            ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_WHILE;
-        }
-        (*lexical_analyze_array)++;
         ON_DEBUG(printf("go to get_if_or_while_operator\n");)
         ON_DEBUG(getchar();)
-        get_if_or_while_operator(lexical_analyze_array, buffer, end_pointer, index);
+        get_if_or_while_operator(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
         return;
     }
     else
     {
-        *buffer = old;
         ON_DEBUG(printf("go to get_assignment_operator\n");)
         ON_DEBUG(getchar();)
-        get_assignment_operator(lexical_analyze_array, buffer, end_pointer, index);
-        return;
+        get_assignment_operator(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        //(*index)++;
+        if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
+            ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_END)
+        {
+            // struct Value new_node_value = {.type      = ((*lexical_analyze_array[0]).value).type, 
+            //                                .operator_ = ((*lexical_analyze_array[0]).value).operator_};
+            //(*lexical_analyze_array)++;
+            //get_assignment_operator(&left_node, lexical_analyze_array, end_pointer, index, *root);
+            Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), left_node, right_node);
+            (*index)++;
+            return;
+        }
+        // if (right_node == NULL)
+        // {
+        //     *root = left_node;
+        // }
     }
+    return;
 }
 
 
-static void get_number_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_number(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    int old_index = *index;
-    char str[100] = {0};
-    old = *buffer;
-    *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-    *index += *buffer - old;
-    if (old_index == *index)
-    {
-        syntax_error(buffer, index);
-    }
-    ON_DEBUG(printf("index in get_number_from_file = %d\n", *index);)
-    char *end = NULL;
-    double value = strtod(str, &end);
-    ((*lexical_analyze_array[0]).value).type = NUMBER;
-    ((*lexical_analyze_array[0]).value).number = value;
-    (*lexical_analyze_array)++;
-    //Errors_of_tree error = create_new_node(root, &new_node_value, NULL, NULL);
+    ON_DEBUG(printf("index in get_number = %d\n", *index);)
+    Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), NULL, NULL);
+    (*index)++;
     //printf("root->value = %d\n", ((*root)->value).number);
     //printf("root = %p\n", (*root));
     return;
 }
 
-static void get_variable_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    int old_index = *index;
-    char str[100] = {0};
-    old = *buffer;
-    *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-    *index += *buffer - old;
-    if (old_index == *index)
-    {
-        syntax_error(buffer, index);
-    }
+    
     ON_DEBUG(printf("index in get_variable_from_file = %d\n", *index);)
-    //struct Value new_node_value = {.type = VARIABLE};
-    transform_to_variable(str, &((*lexical_analyze_array[0]).value));
-    // ((*lexical_analyze_array[0]).value).type = VARIABLE;
-    // ((*lexical_analyze_array[0]).value).variable = new_node_value.variable;
-    (*lexical_analyze_array)++;
+    Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), NULL, NULL);
+    (*index)++;
     return;
 }
 
@@ -731,95 +723,82 @@ static void get_variable_from_file(struct Node **lexical_analyze_array, char **b
 // }
 
 
-static void get_expression_with_comparison_operations(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_expression_with_comparison_operations(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
     ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
     ON_DEBUG(getchar();)
-    get_staples_expression_or_number_or_variable(lexical_analyze_array, buffer, end_pointer, index);
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    int old_index = *index;
-    char str[100] = {0};
-    old = *buffer;
-    *buffer = get_operation_from_file(str, 100, *buffer, end_pointer);
-    //printf("*buffer[0] = %c\n", *buffer[0]);
-    //printf("str = %s\n", str);
-    *index += *buffer - old;
-    if (old_index == *index)
-    {
-        syntax_error(buffer, index);
-    }
+    get_staples_expression_or_number_or_variable(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     bool is_in_while = false;
-    while (is_comparison_operation(str))
+    while (((lexical_analyze_array[*index]).value).type == COMP_OPERATION)
     {
         is_in_while = true;
-        transform_to_comparison_operation(str, &((*lexical_analyze_array[0]).value));
-        (*lexical_analyze_array)++;
+        struct Value new_node_value = (lexical_analyze_array[*index]).value;
+        // transform_to_comparison_operation(str, &((*lexical_analyze_array[0]).value));
+        (*index)++;
         ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
         ON_DEBUG(getchar();)
-        get_staples_expression_or_number_or_variable(lexical_analyze_array, buffer, end_pointer, index);
-        old = *buffer;
-        *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-        *index += *buffer - old;
+        get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+        
     }
-    if (!is_in_while)
-    {
-        bool verdict = is_comparison_operation(str);
-        if (!verdict)
-        {
-            *buffer = old;
-            *index = old_index;
-        }
-    }
+    // if (!is_in_while)
+    // {
+    //     bool verdict = is_comparison_operation(str);
+    //     if (!verdict)
+    //     {
+    //         *buffer = old;
+    //         *index = old_index;
+    //     }
+    // }
     return;
 }
 
-static void get_staples_expression_or_number_or_variable(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_staples_expression_or_number_or_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    if (*buffer[0] == '(')
+    printf("index = %d\n", *index);
+    printf("lexical_analyze_array[*index].type = %d\n", ((lexical_analyze_array[*index]).value).type);
+    if (((lexical_analyze_array[*index]).value).operator_ == OPERATOR_ROUND_BRACKET_OPEN)
     {
         (*index)++;
-        (*buffer)++;
         ON_DEBUG(printf("go to get_expression_with_plus_or_minus\n");)
         ON_DEBUG(getchar();)
-        get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
-        if (*buffer[0] != ')')
+        get_expression_with_plus_or_minus(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
+        // if (*buffer[0] != ')')
+        // {
+        //     syntax_error(buffer, index);
+        // }
+        if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_CLOSE)
         {
-            syntax_error(buffer, index);
+            fprintf(stderr, "Syntax Error! There is no close bracket after expression\n");
+            abort();
         }
         (*index)++;
-        (*buffer)++;
         return;
     }
-    else if (isalpha(*buffer[0]))
+    else if (((lexical_analyze_array[*index]).value).type == VARIABLE)
     {
-        ON_DEBUG(printf("go to get_variable_from_file\n");)
+        ON_DEBUG(printf("go to get_variable\n");)
         ON_DEBUG(getchar();)
-        get_variable_from_file(lexical_analyze_array, buffer, end_pointer, index);
+        get_variable(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
         return;
     }
-    else if (isdigit(*buffer[0]))
+    else if (((lexical_analyze_array[*index]).value).type == NUMBER)
     {
         //printf("digit\n");
         //printf("*buffer[0] = %d\n", *buffer[0] - '0');
-        ON_DEBUG(printf("go to get_number_from_file\n");)
+        ON_DEBUG(printf("go to get_number\n");)
         ON_DEBUG(getchar();)
-        get_number_from_file(lexical_analyze_array, buffer, end_pointer, index);
+        get_number(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
         //printf("*buffer[0] = %c\n", *buffer[0]);
         //printf("root in staples = %p\n", (*root));
         return;
@@ -827,43 +806,29 @@ static void get_staples_expression_or_number_or_variable(struct Node **lexical_a
     ON_DEBUG(printf("index in get_staples_expression_or_number_or_variable = %d\n", *index);)
     return;
 }
-static void get_expression_with_pow(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_expression_with_pow(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    //printf("%c\n", *buffer[0]);
-    *index += *buffer - old;
-    //printf("index = %d\n", *index);
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
     ON_DEBUG(printf("go to get_expression_with_comparison_operations\n");)
     ON_DEBUG(getchar();)
-    get_expression_with_comparison_operations(lexical_analyze_array, buffer, end_pointer, index);
+    get_expression_with_comparison_operations(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     //get_staples_expression_or_number_or_variable(lexical_analyze_array, buffer, end_pointer, index);
     //ON_DEBUG(printf("left_node in pow = %f\n", (left_node->value).number);)
     //printf("left_node = %d\n", (left_node->value).number);
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    while (*buffer[0] == '^')
+    while (((lexical_analyze_array[*index]).value).operation == OP_DEG)
     {
-        //printf("Here\n");
-        char operation = *buffer[0];
+        struct Value new_node_value = (lexical_analyze_array[*index]).value;
         (*index)++;
-        (*buffer)++;
-        //printf("%c\n", *buffer[0]);
         ON_DEBUG(printf("go to get_expression_with_comparison_operations\n");)
         ON_DEBUG(getchar();)
-        //struct Value new_node_value = {.type = OPERATION};
-        transform_to_arithmetic_operation(operation, &((*lexical_analyze_array[0]).value));
-        // ((*lexical_analyze_array[0]).value).type = OPERATION;
-        // ((*lexical_analyze_array[0]).value).operation = new_node_value.operation;
-        (*lexical_analyze_array)++;
-        // Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-        // (*root)->parent_node = parent;
-        get_expression_with_comparison_operations(lexical_analyze_array, buffer, end_pointer, index);
+        
+        get_expression_with_comparison_operations(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
         // left_node = copy_node(*root, parent);
         //printf("root->type = %d\n", ((*root)->value).type);
     }
@@ -884,48 +849,32 @@ static void get_expression_with_pow(struct Node **lexical_analyze_array, char **
     return;
 }
 
-static void get_expression_with_mul_or_div(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_expression_with_mul_or_div(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    char *old = *buffer;
-    //printf("*buffer[0] before = %c\n", *buffer[0]);
-    *buffer = skip_spaces(*buffer, end_pointer);
-    //printf("*buffer[0] after = %c\n", *buffer[0]);
-    //printf("%c\n", *buffer[0]);
-    *index += *buffer - old;
-    //printf("index = %d\n", *index);
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
     ON_DEBUG(printf("go to get_expression_with_pow\n");)
     ON_DEBUG(getchar();)
-    get_expression_with_pow(lexical_analyze_array, buffer, end_pointer, index);
+    get_expression_with_pow(&left_node, lexical_analyze_array,len_of_lexical_analyze_array, index, parent);
     //ON_DEBUG(printf("left_node in mul or div = %p\n", left_node);)
     //printf("left_node = %d\n", (left_node->value).number);
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    while (*buffer[0] == '*' || *buffer[0] == '/')
+    while (((lexical_analyze_array[*index]).value).operation == OP_MUL ||
+           ((lexical_analyze_array[*index]).value).operation == OP_DIV)
     {
         //printf("root address in mul or div = %p\n", *root);
         //printf("left_node parent address in mul or div = %p\n", left_node->parent_node);
         ON_DEBUG(printf("get * or / operation\n");)
         ON_DEBUG(getchar();)
-        //printf("Here\n");
-        char operation = *buffer[0];
+        struct Value new_node_value = (lexical_analyze_array[*index]).value;
         (*index)++;
-        (*buffer)++;
-        //printf("%c\n", *buffer[0]);
         ON_DEBUG(printf("go to get_expression_with_pow\n");)
         ON_DEBUG(getchar();)
-        //printf("right_node parent address in mul or div = %p\n", right_node->parent_node);
-        //struct Value new_node_value = {.type = OPERATION};
-        transform_to_arithmetic_operation(operation, &((*lexical_analyze_array[0]).value));
-        // ((*lexical_analyze_array[0]).value).type = OPERATION;
-        // ((*lexical_analyze_array[0]).value).operation = new_node_value.operation;
-        (*lexical_analyze_array)++;
-        get_expression_with_pow(lexical_analyze_array, buffer, end_pointer, index);
-        // Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+        get_expression_with_pow(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
         //printf("root address = %p\n", *root);
         // left_node = copy_node(*root, parent);
         //printf("root->type = %d\n", ((*root)->value).type);
@@ -946,45 +895,29 @@ static void get_expression_with_mul_or_div(struct Node **lexical_analyze_array, 
     return;
 }
 
-static void get_expression_with_plus_or_minus(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void get_expression_with_plus_or_minus(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
-    //printf("root = %p\n", *root);
-    char *old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
     ON_DEBUG(printf("go to get_expression_with_mul_or_div\n");)
     ON_DEBUG(getchar();)
-    get_expression_with_mul_or_div(lexical_analyze_array, buffer, end_pointer, index);
+    get_expression_with_mul_or_div(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     //ON_DEBUG(printf("left_node in plus or minus = %f\n", (left_node->value).number);)
-    old = *buffer;
-    *buffer = skip_spaces(*buffer, end_pointer);
-    *index += *buffer - old;
-    while (*buffer[0] == '+' || *buffer[0] == '-')
+    while (((lexical_analyze_array[*index]).value).operation == OP_ADD ||
+           ((lexical_analyze_array[*index]).value).operation == OP_SUB)
     {
         ON_DEBUG(printf("get + or - operation\n");)
         ON_DEBUG(getchar();)
-        //printf("Here\n");
-        //printf("left_node address = %p\n", left_node);
-        char operation = *buffer[0];
-        //ON_DEBUG(printf("operation = %c\n", operation);)
+        struct Value new_node_value = (lexical_analyze_array[*index]).value;
         (*index)++;
-        (*buffer)++;
         //printf("index = %d\n", *index);
         ON_DEBUG(printf("go to get_expression_with_mul_or_div\n");)
         ON_DEBUG(getchar();)
-
-        //ON_DEBUG(printf("buffer[0] = %c\n", *buffer[0]);)
-        //ON_DEBUG(printf("right_node address = %p\n", right_node);)
-        //struct Value new_node_value = {.type = OPERATION};
-        transform_to_arithmetic_operation(operation, &((*lexical_analyze_array[0]).value));
-        // ((*lexical_analyze_array[0]).value).type = OPERATION;
-        // ((*lexical_analyze_array[0]).value).operation = new_node_value.operation;
-        (*lexical_analyze_array)++;
-        get_expression_with_mul_or_div(lexical_analyze_array, buffer, end_pointer, index);
+        get_expression_with_mul_or_div(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
 
         // Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
         // left_node = copy_node(*root, NULL);
@@ -1007,27 +940,27 @@ static void get_expression_with_plus_or_minus(struct Node **lexical_analyze_arra
 }
 
 
-static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
+static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index)
 {
-    if (*buffer == end_pointer)
+    if (*index == len_of_lexical_analyze_array)
     {
         return;
     }
     ON_DEBUG(printf("go to get_operator\n");)
     ON_DEBUG(getchar();)
-    get_operator(lexical_analyze_array, buffer, end_pointer, index);
+    get_operator(root, lexical_analyze_array, len_of_lexical_analyze_array, index, NULL);
     //get_expression_with_plus_or_minus(lexical_analyze_array, buffer, end_pointer, index);
     //printf("general root = %p\n", *root);
     //printf("*buffer[0] = %c\n", *buffer[0]);
-    if (*buffer[0] != '$')
-    {
-        //printf("Here!\n");
-        syntax_error(buffer, index);
-    }
+    // if (*buffer[0] != '$')
+    // {
+    //     //printf("Here!\n");
+    //     syntax_error(buffer, index);
+    // }
     return;
 }
 
-static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer)
+static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *len_of_lexical_analyze_array)
 {
     if (*buffer == end_pointer)
     {
@@ -1045,6 +978,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
             ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_END;
             (*lexical_analyze_array)++;
             (*buffer)++;
+            (*len_of_lexical_analyze_array)++;
         }
         else if (isalpha(*buffer[0]))
         {
@@ -1059,6 +993,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_IF;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             if (strcasecmp(str, "while") == 0)
@@ -1068,6 +1003,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_WHILE;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             ON_DEBUG(printf("it is a variable\n");)
@@ -1076,6 +1012,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
             size_t len_of_str = strlen(str);
             strncpy(((*lexical_analyze_array[0]).value).variable_name, str, len_of_str);
             (*lexical_analyze_array)++;
+            (*len_of_lexical_analyze_array)++;
             continue;
         }
         else if (isdigit(*buffer[0]))
@@ -1089,12 +1026,13 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
             ((*lexical_analyze_array[0]).value).type = NUMBER;
             ((*lexical_analyze_array[0]).value).number = value;
             (*lexical_analyze_array)++;
+            (*len_of_lexical_analyze_array)++;
         }
         else
         {
             char str[100] = {};
             *buffer = get_operation_from_file(str, 100, *buffer, end_pointer);
-            printf("str = %s\n", str);
+            //printf("str = %s\n", str);
             if (strcasecmp(str, "=") == 0)
             {
                 ON_DEBUG(printf("it is operator assignment\n");)
@@ -1102,6 +1040,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ASSIGNMENT;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             if (strcasecmp(str, "(") == 0)
@@ -1111,6 +1050,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ROUND_BRACKET_OPEN;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             else if (strcasecmp(str, ")") == 0)
@@ -1120,6 +1060,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_ROUND_BRACKET_CLOSE;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             else if (strcasecmp(str, "{") == 0)
@@ -1129,6 +1070,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_CURLY_BRACKET_OPEN;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             else if (strcasecmp(str, "}") == 0)
@@ -1138,6 +1080,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_CURLY_BRACKET_CLOSE;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             else if (strcasecmp(str, "[") == 0)
@@ -1147,6 +1090,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_SQUARE_BRACKET_OPEN;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             else if (strcasecmp(str, "]") == 0)
@@ -1156,6 +1100,7 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 ((*lexical_analyze_array[0]).value).type = OPERATOR;
                 ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_SQUARE_BRACKET_CLOSE;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
                 continue;
             }
             ON_DEBUG(printf("it is an operation\n");)
@@ -1165,31 +1110,37 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_MORE_OR_EQUAL;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else if (strcasecmp(str, "<=") == 0)
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_LESS_OR_EQUAL;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else if (strcasecmp(str, ">") == 0)
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_MORE;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else if (strcasecmp(str, "<") == 0)
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_LESS;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else if (strcasecmp(str, "!=") == 0)
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_NOT_EQUAL;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else if (strcasecmp(str, "==") == 0)
             {
                 ((*lexical_analyze_array[0]).value).comp_operation = OP_EQUAL;
                 (*lexical_analyze_array)++;
+                (*len_of_lexical_analyze_array)++;
             }
             else
             {
@@ -1198,26 +1149,31 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
                 {
                     ((*lexical_analyze_array[0]).value).operation = OP_ADD;
                     (*lexical_analyze_array)++;
+                    (*len_of_lexical_analyze_array)++;
                 }
                 else if (str[0] == '-')
                 {
                     ((*lexical_analyze_array[0]).value).operation = OP_SUB;
                     (*lexical_analyze_array)++;
+                    (*len_of_lexical_analyze_array)++;
                 }
                 else if (str[0] == '*')
                 {
                     ((*lexical_analyze_array[0]).value).operation = OP_MUL;
                     (*lexical_analyze_array)++;
+                    (*len_of_lexical_analyze_array)++;
                 }
                 else if (str[0] == '/')
                 {
                     ((*lexical_analyze_array[0]).value).operation = OP_DIV;
                     (*lexical_analyze_array)++;
+                    (*len_of_lexical_analyze_array)++;
                 }
                 else if (str[0] == '^')
                 {
                     ((*lexical_analyze_array[0]).value).operation = OP_DEG;
                     (*lexical_analyze_array)++;
+                    (*len_of_lexical_analyze_array)++;
                 }
                 else
                 {
