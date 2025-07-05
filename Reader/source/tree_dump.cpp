@@ -141,11 +141,11 @@ static const char * get_comp_operation(Comparison_operations operation)
 {
     switch (operation)
     {
-        case OP_LESS:          return "<";
+        case OP_LESS:          return "OPERATOR LESS";
         case OP_EQUAL:         return "==";
-        case OP_LESS_OR_EQUAL: return "<=";
-        case OP_MORE:          return ">";
-        case OP_MORE_OR_EQUAL: return ">=";
+        case OP_LESS_OR_EQUAL: return "OPERATOR LESS OR EQUAL";
+        case OP_MORE:          return "OPERATOR MORE";
+        case OP_MORE_OR_EQUAL: return "OPERATOR MORE OR EQUAL";
         case OP_NOT_EQUAL:     return "!=";
         default:               return "UNKNOWN COMP OPERATION!";
     }
@@ -213,7 +213,7 @@ static void create_nodes_in_dump(struct Node *root, FILE *file_pointer)
     get_value(&(root->value), str);
     fprintf(file_pointer, "box%p "
                         "[shape = record,"
-                        " label = \"{<node_par>parent = %p|<node_adr>address = %p|<node_t>type = %s|<node_v>value = %s|"
+                        " label = \"{<node_par>parent = %p|<node_adr>address = %p|<node_t>type = %s|<node_v>value = %s |"
                         "{<node_l>left_node = %p|<node_r>right_node = %p}}\"];\n",
                         root, root->parent_node, root,
                         get_type_name((root->value).type),
