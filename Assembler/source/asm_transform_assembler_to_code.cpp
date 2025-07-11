@@ -7,6 +7,9 @@
 
 #include "../../Processor/include/processor.h"
 #include "assembler.h"
+#include "../../Reader/include/tree.h"
+// #include "../../Reader/include/tree_input.h"
+// #include "../../Reader/include/tree_dump.h"
 
 
 static const int num_of_labels = 10;
@@ -316,7 +319,7 @@ Errors_of_ASM transform_commands(struct ASM *Asm, struct CMD *all_commands, size
 
 Errors_of_ASM create_file_with_commands(struct ASM *Asm)
 {
-    FILE *fp = fopen("Assembler/source/cpu_commands.txt", "w");
+    FILE *fp = fopen("source/cpu_commands.txt", "w");
     if (Asm == NULL || fp == NULL)
     {
         return ERROR_OF_CREATING_OUT_FILE;
@@ -374,12 +377,12 @@ static Errors_of_ASM constructor(struct ASM *Asm)
 {
     if (Asm == NULL)
     {
-        return ERROR_OF_CONSTRUCTOR;
+        return ERROR_OF_CONSTRUCTOR_ASM;
     }
     Asm->commands = (Command *) calloc(Asm->count_of_rows, sizeof(Command));
     if (Asm->commands == NULL)
     {
-        return ERROR_OF_CONSTRUCTOR;
+        return ERROR_OF_CONSTRUCTOR_ASM;
     }
     for (size_t i = 0; i < (Asm->count_of_rows); i++)
     {
@@ -389,13 +392,13 @@ static Errors_of_ASM constructor(struct ASM *Asm)
     Asm->table = (Table_labels *) calloc(1, sizeof(Table_labels));
     if (Asm->table == NULL)
     {
-        return ERROR_OF_CONSTRUCTOR;
+        return ERROR_OF_CONSTRUCTOR_ASM;
     }
     (Asm->table)->size_of_labels = (size_t)num_of_labels;
     (Asm->table)->labels = (Label *) calloc((Asm->table)->size_of_labels, sizeof(Label));
     if ((Asm->table)->labels == NULL)
     {
-        return ERROR_OF_CONSTRUCTOR;
+        return ERROR_OF_CONSTRUCTOR_ASM;
     }
     for (size_t i = 0; i < (Asm->table)->size_of_labels; i++)
     {
@@ -440,99 +443,126 @@ static Errors_of_ASM get_count_of_rows(struct ASM *Asm)
 
 int main()
 {
-    printf("Assembler started!\n");
-
-    struct CMD all_commands[] = {{"push", CMD_PUSH},
-                                 {"pop",  CMD_POP},
-                                 {"add",  CMD_ADD},
-                                 {"sub",  CMD_SUB},
-                                 {"mul",  CMD_MUL},
-                                 {"div",  CMD_DIV},
-                                 {"out",  CMD_OUT},
-                                 {"in",   CMD_IN},
-                                 {"sqrt", CMD_SQRT},
-                                 {"sin",  CMD_SIN},
-                                 {"cos",  CMD_COS},
-                                 {"dump", CMD_DUMP},
-                                 {"jmp",  CMD_JMP},
-                                 {"ja",   CMD_JA},
-                                 {"jae",  CMD_JAE},
-                                 {"jb",   CMD_JB},
-                                 {"jbe",  CMD_JBE},
-                                 {"je",   CMD_JE},
-                                 {"jne",  CMD_JNE},
-                                 {"label", CMD_LABEL},
-                                 {"print", CMD_PRINT},
-                                 {"inf", CMD_PRINT_INF},
-                                 {"none", CMD_PRINT_NONE},
-                                 {"here", CMD_HERE},
-                                 {"hlt", CMD_HLT}};
-    size_t size_of_all_commands = sizeof(all_commands) / sizeof(CMD);
-
-    // struct Labels all_labels[] = {{"NEXT:"},
-    //                               {"SKIP:"}};
-
-    struct Labels all_labels[] = {{"A=0:"},
-                                  {"B=0:"},
-                                  {"C=0:"},
-                                  {"D>0:"},
-                                  {"D=0:"},
-                                  {"D<0:"}};
-    size_t size_of_all_labels = sizeof(all_labels) / sizeof(Labels);
-
-
-    struct ASM Asm = {0};
-    (Asm.file_pointer) = fopen("Assembler/source/factorial.txt", "rb");
-    Errors_of_ASM error = get_count_of_rows(&Asm);
-    //printf("count_of_rows = %lu\n", Asm.count_of_rows);
-    if (error != NO_ASM_ERRORS)
+    struct Tree tree = {0};
+    Errors_of_tree error = tree_reader(&tree);
+    if (error != NO_ERRORS_TREE)
     {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
+        fprintf(stderr, "error = %d\n", error);
+        abort();
     }
-
-    error = constructor(&Asm);
-    if (error != NO_ASM_ERRORS)
+    struct Labels *all_labels = (struct Labels *) calloc(SIZE_OF_ALL_VARIABLES, sizeof(struct Labels));
+    if (all_labels == NULL)
     {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
+        fprintf(stderr, "ERROR OF CREATE ARRAY OF LABELS\n");
+        abort();
     }
-
-    error = get_commands(&Asm, all_labels, size_of_all_labels);
-    if (error != NO_ASM_ERRORS)
+    Errors_of_ASM error_asm = transform_programm_to_assembler(&tree, &all_labels);
+    if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
+        fprintf(stderr, "error = %d\n", error_asm);
+        abort();
     }
-    error = repeat_get_commands(&Asm);
-    if (error != NO_ASM_ERRORS)
-    {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
-    }
+    error = tree_destructor(&tree);
+    free(all_labels);
+    
+    // printf("Assembler started!\n");
 
-    error = transform_commands(&Asm, all_commands, size_of_all_commands);
-    if (error != NO_ASM_ERRORS)
-    {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
-    }
+    // struct CMD all_commands[] = {{"push", CMD_PUSH},
+    //                              {"pop",  CMD_POP},
+    //                              {"add",  CMD_ADD},
+    //                              {"sub",  CMD_SUB},
+    //                              {"mul",  CMD_MUL},
+    //                              {"div",  CMD_DIV},
+    //                              {"out",  CMD_OUT},
+    //                              {"in",   CMD_IN},
+    //                              {"sqrt", CMD_SQRT},
+    //                              {"sin",  CMD_SIN},
+    //                              {"cos",  CMD_COS},
+    //                              {"dump", CMD_DUMP},
+    //                              {"jmp",  CMD_JMP},
+    //                              {"ja",   CMD_JA},
+    //                              {"jae",  CMD_JAE},
+    //                              {"jb",   CMD_JB},
+    //                              {"jbe",  CMD_JBE},
+    //                              {"je",   CMD_JE},
+    //                              {"jne",  CMD_JNE},
+    //                              {"label", CMD_LABEL},
+    //                              {"print", CMD_PRINT},
+    //                              {"inf", CMD_PRINT_INF},
+    //                              {"none", CMD_PRINT_NONE},
+    //                              {"here", CMD_HERE},
+    //                              {"hlt", CMD_HLT}};
+    // size_t size_of_all_commands = sizeof(all_commands) / sizeof(CMD);
 
-    error = create_file_with_commands(&Asm);
-    if (error != NO_ASM_ERRORS)
-    {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
-    }
+    // // struct Labels all_labels[] = {{"NEXT:"},
+    // //                               {"SKIP:"}};
 
-    error = destructor(&Asm);
-    if (error != NO_ASM_ERRORS)
-    {
-        fprintf(stderr, "error=%d\n", error);
-        return 0;
-    }
+    // struct Labels all_labels[] = {{"A=0:"},
+    //                               {"B=0:"},
+    //                               {"C=0:"},
+    //                               {"D>0:"},
+    //                               {"D=0:"},
+    //                               {"D<0:"}};
+    // size_t size_of_all_labels = sizeof(all_labels) / sizeof(Labels);
 
-    printf("Assembler finished!\n");
+
+    // struct ASM Asm = {0};
+    // (Asm.file_pointer) = fopen("source/quadratic.txt", "rb");
+    // if (Asm.file_pointer == NULL)
+    // {
+    //     fprintf(stderr, "ERROR_OF_OPEN_FILE\n");
+    //     return 1;
+    // }
+    // Errors_of_ASM error = get_count_of_rows(&Asm);
+    // //printf("count_of_rows = %lu\n", Asm.count_of_rows);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // error = constructor(&Asm);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // error = get_commands(&Asm, all_labels, size_of_all_labels);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+    // error = repeat_get_commands(&Asm);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // error = transform_commands(&Asm, all_commands, size_of_all_commands);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // error = create_file_with_commands(&Asm);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // error = destructor(&Asm);
+    // if (error != NO_ASM_ERRORS)
+    // {
+    //     fprintf(stderr, "error=%d\n", error);
+    //     return 1;
+    // }
+
+    // printf("Assembler finished!\n");
     return 0;
 }
 
@@ -542,7 +572,7 @@ static Errors_of_ASM destructor(struct ASM *Asm)
 {
     if (Asm == NULL)
     {
-        return ERROR_OF_DESTRUCTOR;
+        return ERROR_OF_DESTRUCTOR_ASM;
     }
     fclose(Asm->file_pointer);
     Asm->count_of_rows = 0;

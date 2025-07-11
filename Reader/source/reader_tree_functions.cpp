@@ -162,7 +162,7 @@ static void simplyfying_node_with_plus_or_minus(struct Node **root, FILE *file_p
     }
 
     struct Value new_root_value = {};
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     if (is_node_number((*root)->left, 0))
     {
         create_value(&(((*root)->right)->value), &new_root_value);
@@ -189,7 +189,7 @@ static void simplyfying_node_with_mul(struct Node **root, FILE *file_pointer)
     }
 
     struct Value new_root_value = {};
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     if (is_node_number((*root)->left, 0) || is_node_number((*root)->right, 0))
     {
         new_root_value.type = NUMBER;
@@ -232,7 +232,7 @@ static void simplyfying_node_with_div(struct Node **root, FILE *file_pointer)
     }
 
     struct Value new_root_value = {};
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     if (is_node_number((*root)->left, 0))
     {
         new_root_value.type = NUMBER;
@@ -264,7 +264,7 @@ static void simplyfying_node_with_pow(struct Node **root, FILE *file_pointer)
     }
 
     struct Value new_root_value = {};
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
 
 
     if (is_node_number((*root)->right, 0))
@@ -344,10 +344,10 @@ static void differentiation_of_func_sin(struct Node **root, FILE *file_pointer)
     struct Node *differentiation_left = copy_node((*root)->left, *root);
     struct Value new_root_value = {.type = OPERATION, .operation = OP_MUL};
     struct Value new_root_left_value = {.type = FUNCTION, .function = FUNC_COS};
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     struct Node *new_function = NULL;
     error = create_new_node(&new_function, &new_root_left_value, old_left, NULL);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
@@ -378,24 +378,24 @@ static void differentiation_div(struct Node **root, FILE *file_pointer)
     struct Node *new_numerator_right_node = NULL;
     struct Node *new_numerator_node = NULL;
     struct Node *new_denominator_node = NULL;
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     error = create_new_node(&new_numerator_left_node, &new_numerator_left_and_right_value, diffirentiation_left, old_right);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_numerator_right_node, &new_numerator_left_and_right_value, old_left, diffirentiation_right);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_numerator_node, &new_numerator_value, new_numerator_left_node, new_numerator_right_node);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_denominator_node, &new_denominator_value, denominator_node_left, denominator_node_right);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
@@ -436,7 +436,7 @@ static void differentiation_mul_expressions(struct Node **root, FILE *file_point
     {
         return;
     }
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     struct Node *old_left = copy_node((*root)->left, *root);
     struct Node *old_right = copy_node((*root)->right, *root);
     differentiation(((*root)->left), file_pointer);
@@ -448,12 +448,12 @@ static void differentiation_mul_expressions(struct Node **root, FILE *file_point
     struct Node *new_left_node = NULL;
     struct Node *new_right_node = NULL;
     error = create_new_node(&(new_left_node), &new_nodes_value, diffirentiation_left, old_right);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&(new_right_node), &new_nodes_value, old_left, diffirentiation_right);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
@@ -486,7 +486,7 @@ static void differentiation_pow_expression(struct Node **root, FILE *file_pointe
     {
         return;
     }
-    Errors_of_tree error = NO_ERRORS;
+    Errors_of_tree error = NO_ERRORS_TREE;
     struct Value new_root_value = {.type = OPERATION, .operation = OP_MUL};
     struct Value new_left_node_value = {.type = NUMBER, .number = (((*root)->right)->value).number};
     struct Value new_right_node_value = {.type = OPERATION, .operation = OP_DEG};
@@ -497,22 +497,22 @@ static void differentiation_pow_expression(struct Node **root, FILE *file_pointe
     struct Node *new_right_left_node = NULL;
     struct Node *new_right_right_node = NULL;
     error = create_new_node(&new_left_node, &new_left_node_value, NULL, NULL);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_right_left_node, &new_right_left_node_value, NULL, NULL);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_right_right_node, &new_right_right_node_value, NULL, NULL);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
     error = create_new_node(&new_right_node, &new_right_node_value, new_right_left_node, new_right_right_node);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return;
     }
@@ -817,7 +817,7 @@ Errors_of_tree create_new_node(struct Node **root, struct Value *value, struct N
             ((*root)->right)->parent_node = *root;
         }
     }
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 
@@ -838,14 +838,14 @@ Errors_of_tree tree_constructor(struct Tree *tree)
     // {
     //     return ERROR_OF_CONSTRUCTOR;
     // }
-    tree->error = NO_ERRORS;
+    tree->error = NO_ERRORS_TREE;
     tree->root = (Node *) calloc(1, sizeof(Node));
     if (tree->root == NULL)
     {
         return ERROR_OF_CONSTRUCTOR;
     }
     tree->tmp_root = tree->root;
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 Errors_of_tree tree_destructor(struct Tree *tree)
@@ -855,11 +855,11 @@ Errors_of_tree tree_destructor(struct Tree *tree)
         return ERROR_OF_DESTRUCTOR;
     }
     destructor_recursive(tree->root);
-    if (tree->error != NO_ERRORS)
+    if (tree->error != NO_ERRORS_TREE)
     {
         return tree->error;
     }
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 

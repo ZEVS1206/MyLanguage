@@ -481,7 +481,7 @@ Errors_of_tree create_latex_file(FILE *file_pointer)
                             "\\date{January 2025}\n"
                             "\\begin{document}\n");
                             //"\\end{document}\n");
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 void latex_dump(struct Node *root, FILE *file_pointer, const char *action)
@@ -511,5 +511,5 @@ Errors_of_tree close_latex_file(FILE *file_pointer)
     }
     fprintf(file_pointer, "\\end{document}\n");
     fclose(file_pointer);
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }

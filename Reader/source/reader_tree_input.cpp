@@ -302,9 +302,9 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
     // printf("last position:\ntype = %d\n", ((lexical_analyze_array[2]).value).type);
     struct Node *new_end_pointer = &(lexical_analyze_array[0]);
     lexical_analyze_array = old_pointer;
-    printf("last position:\ntype = %d\n", ((lexical_analyze_array[2]).value).type);
-    printf("len of lexical analyze array = %d\n", len_of_lexical_analyze_array);
-    print_lexical_analyze_array(old_pointer, len_of_lexical_analyze_array);
+    ON_DEBUG(("last position:\ntype = %d\n", ((lexical_analyze_array[2]).value).type);)
+    ON_DEBUG(("len of lexical analyze array = %d\n", len_of_lexical_analyze_array);)
+    ON_DEBUG(print_lexical_analyze_array(old_pointer, len_of_lexical_analyze_array);)
     parse_information_from_lexical_analyze_array_by_recursive_descent(&(tree->root),lexical_analyze_array, len_of_lexical_analyze_array, &index);
     //print_lexical_analyze_array(old_pointer, size_of_file);
     // printf("index:%d\nnode_type:%d\n", 0, ((lexical_analyze_array[0]).value).type);
@@ -314,7 +314,7 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
 
     free(old_buffer);
     free(old_pointer);
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 static char * get_value_from_file(char *str, size_t size_of_str, char *buffer, char *end_pointer)
@@ -391,7 +391,7 @@ static void get_assignment_operator(struct Node **root, struct Node *lexical_ana
     //get_expression_with_comparison_operations(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         fprintf(stderr, "error = %d\n", error);
         abort();
@@ -468,7 +468,7 @@ static void get_if_or_while_operator(struct Node **root, struct Node *lexical_an
     }
     (*index)++;
     Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         fprintf(stderr, "error = %d\n", error);
         abort();
@@ -517,7 +517,7 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
             (*index)++;
             get_operator(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
             Errors_of_tree error = create_new_node(root, &(new_node_value), left_node, right_node);
-            if (error != NO_ERRORS)
+            if (error != NO_ERRORS_TREE)
             {
                 fprintf(stderr, "error = %d\n", error);
                 abort();
@@ -547,7 +547,7 @@ static void get_number(struct Node **root, struct Node *lexical_analyze_array, i
     }
     ON_DEBUG(printf("index in get_number = %d\n", *index);)
     Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), NULL, NULL);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         fprintf(stderr, "error = %d\n", error);
         abort();
@@ -569,7 +569,7 @@ static void get_variable(struct Node **root, struct Node *lexical_analyze_array,
     if (((lexical_analyze_array[*index]).value).type == VARIABLE)
     {
         Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), NULL, NULL);
-        if (error != NO_ERRORS)
+        if (error != NO_ERRORS_TREE)
         {
             fprintf(stderr, "error = %d\n", error);
             abort();
@@ -691,7 +691,7 @@ static void get_expression_with_comparison_operations(struct Node **root, struct
         ON_DEBUG(getchar();)
         get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-        if (error != NO_ERRORS)
+        if (error != NO_ERRORS_TREE)
         {
             fprintf(stderr, "error = %d\n", error);
             abort();
@@ -716,8 +716,8 @@ static void get_staples_expression_or_number_or_variable(struct Node **root, str
     {
         return;
     }
-    printf("index = %d\n", *index);
-    printf("lexical_analyze_array[*index].type = %d\n", ((lexical_analyze_array[*index]).value).type);
+    ON_DEBUG(printf("index = %d\n", *index);)
+    ON_DEBUG(printf("lexical_analyze_array[*index].type = %d\n", ((lexical_analyze_array[*index]).value).type);)
     //printf("lexical_analyze_array[*index].operator_ = %d\n", ((lexical_analyze_array[*index]).value).operator_);
     if (((lexical_analyze_array[*index]).value).type == OPERATOR &&
         ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_ROUND_BRACKET_OPEN)
@@ -786,7 +786,7 @@ static void get_expression_with_pow(struct Node **root, struct Node *lexical_ana
         get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         //get_expression_with_comparison_operations(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-        if (error != NO_ERRORS)
+        if (error != NO_ERRORS_TREE)
         {
             fprintf(stderr, "error = %d\n", error);
             abort();
@@ -837,7 +837,7 @@ static void get_expression_with_mul_or_div(struct Node **root, struct Node *lexi
         ON_DEBUG(getchar();)
         get_expression_with_pow(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-        if (error != NO_ERRORS)
+        if (error != NO_ERRORS_TREE)
         {
             fprintf(stderr, "error = %d\n", error);
             abort();
@@ -886,7 +886,7 @@ static void get_expression_with_plus_or_minus(struct Node **root, struct Node *l
         ON_DEBUG(getchar();)
         get_expression_with_mul_or_div(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
-        if (error != NO_ERRORS)
+        if (error != NO_ERRORS_TREE)
         {
             fprintf(stderr, "error = %d\n", error);
             abort();

@@ -12,10 +12,10 @@ static int compare(double a, double b);
 
 Errors_of_CPU create_commands()
 {
-    FILE *fp = fopen("Assembler/source/cpu_commands.txt", "r");
+    FILE *fp = fopen("../Assembler/source/cpu_commands.txt", "r");
     struct MySPU spu = {0};
     struct stat statistics = {0};
-    int res = stat("Assembler/source/cpu_commands.txt", &statistics);
+    int res = stat("../Assembler/source/cpu_commands.txt", &statistics);
     if (res != 0)
     {
         return ERROR_OF_GETTING_INFORMATION_ABOUT_CMD;

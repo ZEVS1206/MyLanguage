@@ -30,12 +30,12 @@ static Errors_of_tree create_command_for_console(const char *file_in_name, const
     char command_for_console[100] = "";
     snprintf(command_for_console, 100, "sudo dot -Tpng %s -o %s.png", file_in_name, file_out_name);
     Errors_of_tree error = check_command(command_for_console, 100);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         return error;
     }
     system(command_for_console);
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 static Errors_of_tree check_command(const char *command, size_t size)
@@ -62,7 +62,7 @@ static Errors_of_tree check_command(const char *command, size_t size)
             }
         }
     }
-    return NO_ERRORS;
+    return NO_ERRORS_TREE;
 }
 
 static size_t get_size_of_number(int number)
@@ -279,7 +279,7 @@ void graphic_dump(struct Tree *tree, char *operation)
     fclose(file_pointer);
 
     Errors_of_tree error = create_command_for_console(file_name, file_out_name);
-    if (error != NO_ERRORS)
+    if (error != NO_ERRORS_TREE)
     {
         tree->error = ERROR_OF_DUMP;
         return;

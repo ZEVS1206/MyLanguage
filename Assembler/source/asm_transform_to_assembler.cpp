@@ -1,0 +1,258 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+
+#include "assembler.h"
+#include "../../Reader/include/tree.h"
+#include "../../Processor/include/processor.h"
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
+static void process_variable(struct Value *value, FILE *file_pointer, struct Label **all_variables);
+static void process_operation(struct Value *value, FILE *file_pointer);
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+
+Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels **all_labels)
+{
+    if (tree == NULL)
+    {
+        return ERROR_OF_OPERATE_TREE;
+    }
+    FILE *file_pointer = fopen("source/asm_programm.txt", "w");
+    if (file_pointer == NULL)
+    {
+        return ERROR_OF_CREATE_ASM_FILE;
+    }
+    struct Label *all_variables = (struct Label *) calloc (SIZE_OF_ALL_VARIABLES, sizeof(struct Label));
+    if (all_variables == NULL)
+    {
+        return ERROR_OF_OPERATE_TREE;
+    }
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        all_variables[index].address = -1;
+    }
+    size_t counter_of_if = 0;
+    bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if);
+    fprintf(file_pointer, "hlt\n");
+    free(all_variables);
+    fclose(file_pointer);
+    return NO_ASM_ERRORS;
+}
+
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    if (file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF WRITING TO FILE\n");
+        abort();
+    }
+    bypass_of_tree(root->left, file_pointer, all_variables, all_labels, counter_of_if);
+    choose_way_of_operating(root, file_pointer, all_variables, all_labels, counter_of_if);
+    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if);
+    return;
+}
+
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF OPERATING TREE\n");
+        abort();
+    }
+    if ((root->value).type != OPERATOR)
+    {
+        return;
+    }
+    switch ((root->value).operator_)
+    {
+        case OPERATOR_ASSIGNMENT:
+        {
+            process_operator_assignment(root, file_pointer, all_variables);
+            return;
+        }
+        case OPERATOR_IF:
+        {
+            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if);
+            return;
+        }
+        // case OPERATOR_WHILE:
+        // {
+        //     process_operator_while(root, file_pointer);
+        //     return;
+        // }
+        default: return;
+    }
+}
+
+//NOT READY FUNCTION
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING OPERATOR IF\n");
+        abort();
+    }
+    (*counter_of_if)++;
+    //process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if);
+    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if);
+    fprintf(file_pointer, "end_if%lu\n", *counter_of_if);
+    size_t index = 0;
+    while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+    {
+        index++;
+    }
+    if (index < SIZE_OF_ALL_VARIABLES)
+    {
+        char str[] = "end_if";
+        const size_t current_len = strlen(str);
+        snprintf(str + current_len, sizeof(str) - current_len, "%lu", *counter_of_if);
+        strncpy(((*all_labels)[index]).name, str, strlen(str));
+    }
+    return;
+}
+
+static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING OPERATOR ASSIGNMENT\n");
+        abort();
+    }
+    int ram_address = -1;
+    bool is_exits = false;
+    int empty_index = 0;
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        if (strcasecmp(((root->left)->value).variable_name, ((*all_variables)[index]).name) == 0)
+        {
+            ram_address = ((*all_variables)[index]).address;
+            is_exits = true;
+            break;
+        }
+        if (((*all_variables)[index]).address == -1)
+        {
+            empty_index = index;
+            break;
+        }
+    }
+    process_expression_after_assignment(root->right, file_pointer, all_variables);
+    if (!is_exits)
+    {
+        ((*all_variables)[empty_index]).address = empty_index;
+        strncpy(((*all_variables)[empty_index]).name, ((root->left)->value).variable_name, strlen(((root->left)->value).variable_name));
+        ram_address = empty_index;
+    }
+    fprintf(file_pointer, "push [");
+    fprintf(file_pointer, "%d]\n", ram_address);
+    return;
+}
+
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    if (file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
+        abort();
+    }
+
+    process_expression_after_assignment((root->left), file_pointer, all_variables);
+    process_expression_after_assignment((root->right), file_pointer, all_variables);
+    switch ((root->value).type)
+    {
+        case NUMBER:
+        {
+            fprintf(file_pointer, "push %f\n", (root->value).number);
+            return;
+        }
+        case VARIABLE:
+        {
+            process_variable(&(root->value), file_pointer, all_variables);
+            return;
+        }
+        case OPERATION:
+        {
+            process_operation(&(root->value), file_pointer);
+            return;
+        }
+        default:
+        {
+            fprintf(stderr, "ERROR OF UNKNOWN TYPE\n");
+            abort();
+        }
+    }
+    return;
+}
+
+static void process_variable(struct Value *value, FILE *file_pointer, struct Label **all_variables)
+{
+    if (value == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING VARIABLE\n");
+        abort();
+    }
+    bool is_exists = false;
+    size_t address = -1;
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        //printf("name of variable = %s\n", ((*all_variables)[index]).name);
+        if (strcasecmp(value->variable_name, ((*all_variables)[index]).name) == 0)
+        {
+            is_exists = true;
+            address = ((*all_variables)[index]).address;
+            break;
+        }
+    }
+
+    if (!is_exists)
+    {
+        fprintf(stderr, "ERROR OF USING UNKNOWN VARIABLE\n");
+        abort();
+    }
+    fprintf(file_pointer, "pop [%d]\n", address);
+    return;
+}
+
+static void process_operation(struct Value *value, FILE *file_pointer)
+{
+    if (value == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING OPERATION\n");
+        abort();
+    }
+    switch(value->operation)
+    {
+        case OP_ADD:
+        {
+            fprintf(file_pointer, "add\n");
+            return;
+        }
+        case OP_SUB:
+        {
+            fprintf(file_pointer, "sub\n");
+            return;
+        }
+        case OP_MUL:
+        {
+            fprintf(file_pointer, "mul\n");
+            return;
+        }
+        case OP_DIV:
+        {
+            fprintf(file_pointer, "div\n");
+            return;
+        }
+        default: return;
+    }
+    return;
+}

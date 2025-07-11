@@ -1,11 +1,10 @@
 #ifndef TREE_H
 #define TREE_H
 
-#include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define ON_DEBUG(...) __VA_ARGS__

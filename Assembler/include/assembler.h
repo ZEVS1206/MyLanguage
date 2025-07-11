@@ -2,7 +2,9 @@
 #define ASM_H
 
 #include "../../Processor/include/processor.h"
+#include "../../Reader/include/tree.h"
 
+#define SIZE_OF_ALL_VARIABLES 50
 
 enum Errors_of_ASM
 {
@@ -11,11 +13,13 @@ enum Errors_of_ASM
     ERROR_OF_READING_FROM_FILE = 2,
     ERROR_OF_NO_COMMANDS       = 3,
     ERROR_OF_CREATING_OUT_FILE = 4,
-    ERROR_OF_DESTRUCTOR        = 5,
+    ERROR_OF_DESTRUCTOR_ASM        = 5,
     ERROR_OF_CREATE_ARRAY      = 6,
     ERROR_OF_UNKNOWN_REGISTER  = 7,
-    ERROR_OF_CONSTRUCTOR       = 8,
-    ERROR_OF_PARSE_WORD        = 9
+    ERROR_OF_CONSTRUCTOR_ASM       = 8,
+    ERROR_OF_PARSE_WORD        = 9,
+    ERROR_OF_CREATE_ASM_FILE   = 10,
+    ERROR_OF_OPERATE_TREE      = 11
 };
 
 struct Command
@@ -59,9 +63,11 @@ struct ASM
     FILE *file_pointer;
 };
 
+
 Errors_of_ASM get_commands(struct ASM *Asm, struct Labels *all_labels, size_t size_of_all_labels);
 Errors_of_ASM transform_commands(struct ASM *Asm, struct CMD *all_commands, size_t size_of_all_commands);
 Errors_of_ASM create_file_with_commands(struct ASM *Asm);
+Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels **all_labels);
 
 #endif
 
