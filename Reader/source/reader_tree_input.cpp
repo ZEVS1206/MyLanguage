@@ -420,6 +420,7 @@ static void get_if_or_while_operator(struct Node **root, struct Node *lexical_an
     // }
     struct Node *left_node = NULL;
     struct Node *right_node = NULL;
+    struct Node *node_after_operator = NULL;
     struct Value new_node_value = (lexical_analyze_array[*index]).value;
     (*index)++;
     if (((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_OPEN)
@@ -467,7 +468,9 @@ static void get_if_or_while_operator(struct Node **root, struct Node *lexical_an
         abort();
     }
     (*index)++;
+    get_operator(&node_after_operator, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+    (*root)->node_after_operator = node_after_operator;
     if (error != NO_ERRORS_TREE)
     {
         fprintf(stderr, "error = %d\n", error);
@@ -488,6 +491,7 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
     }
     struct Node *left_node  = NULL;
     struct Node *right_node = NULL;
+    struct Node *node_after_operator = NULL;
     //get_operator(&left_node, lexical_analyze_array, end_pointer, index, *root);
     // (*index)++;
     // (*lexical_analyze_array)++;

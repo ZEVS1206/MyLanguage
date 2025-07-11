@@ -872,6 +872,7 @@ static void destructor_recursive(struct Node *root)
 
     destructor_recursive(root->left);
     destructor_recursive(root->right);
+    destructor_recursive(root->node_after_operator);
     //printf("Here\n");
     free(root);
     root = NULL;

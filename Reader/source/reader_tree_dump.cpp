@@ -214,16 +214,20 @@ static void create_nodes_in_dump(struct Node *root, FILE *file_pointer)
     fprintf(file_pointer, "box%p "
                         "[shape = record,"
                         " label = \"{<node_par>parent = %p|<node_adr>address = %p|<node_t>type = %s|<node_v>value = %s |"
-                        "{<node_l>left_node = %p|<node_r>right_node = %p}}\"];\n",
+                        "{<node_l>left_node = %p|<node_r>right_node = %p|<node_ap>node_after_operator = %p}}\"];\n",
                         root, root->parent_node, root,
                         get_type_name((root->value).type),
                         str,
-                        root->left, root->right);
+                        root->left, root->right, root->node_after_operator);
 
 
     if (root->right != NULL)
     {
         create_nodes_in_dump(root->right, file_pointer);
+    }
+    if (root->node_after_operator != NULL)
+    {
+        create_nodes_in_dump(root->node_after_operator, file_pointer);
     }
 }
 
@@ -246,6 +250,12 @@ static void create_connections(struct Node *root, FILE *file_pointer)
     {
         fprintf(file_pointer, "box%p:<node_r>->box%p [color=green];\n", root, (root->right));
         create_connections(root->right, file_pointer);
+    }
+
+    if (root->node_after_operator != NULL)
+    {
+        fprintf(file_pointer, "box%p:<node_ap>->box%p [color=green];\n", root, (root->node_after_operator));
+        create_connections(root->node_after_operator, file_pointer);
     }
 }
 
