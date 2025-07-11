@@ -6,13 +6,18 @@
 #include "assembler.h"
 #include "../../Reader/include/tree.h"
 #include "../../Processor/include/processor.h"
-static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
-static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+#include "stack.h"
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
 static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
 static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
 static void process_variable(struct Value *value, FILE *file_pointer, struct Label **all_variables);
 static void process_operation(struct Value *value, FILE *file_pointer);
-static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
+static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels);
+static void process_comparison_operation(struct Value *value, FILE *file_pointer);
+
 
 Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels **all_labels)
 {
@@ -34,15 +39,29 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     {
         all_variables[index].address = -1;
     }
+    struct MyStack stack = {0};
+    Errors error = NO_ERRORS;
+    error = STACK_CTOR(&stack, 10);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
     size_t counter_of_if = 0;
-    bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if);
+    bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if, &stack);
     fprintf(file_pointer, "hlt\n");
     free(all_variables);
     fclose(file_pointer);
+    error = stack_destructor(&stack);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
     return NO_ASM_ERRORS;
 }
 
-static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
 {
     if (root == NULL)
     {
@@ -53,13 +72,18 @@ static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label *
         fprintf(stderr, "ERROR OF WRITING TO FILE\n");
         abort();
     }
-    bypass_of_tree(root->left, file_pointer, all_variables, all_labels, counter_of_if);
-    choose_way_of_operating(root, file_pointer, all_variables, all_labels, counter_of_if);
-    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if);
+    bypass_of_tree(root->left, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    choose_way_of_operating(root, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    if ((root->value).type != OPERATOR ||
+        ((root->value).operator_ != OPERATOR_IF &&
+         (root->value).operator_ != OPERATOR_WHILE))
+    {
+        bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    }
     return;
 }
 
-static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
 {
     if (root == NULL || file_pointer == NULL)
     {
@@ -79,7 +103,7 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
         }
         case OPERATOR_IF:
         {
-            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if);
+            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if, stack);
             return;
         }
         // case OPERATOR_WHILE:
@@ -90,9 +114,7 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
         default: return;
     }
 }
-
-//NOT READY FUNCTION
-static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
 {
     if (root == NULL || file_pointer == NULL)
     {
@@ -100,21 +122,38 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct La
         abort();
     }
     (*counter_of_if)++;
-    //process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if);
-    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if);
-    fprintf(file_pointer, "end_if%lu\n", *counter_of_if);
-    size_t index = 0;
-    while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+    Errors error = stack_push(stack, (double)(*counter_of_if));
+    if (error != NO_ERRORS)
     {
-        index++;
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
     }
-    if (index < SIZE_OF_ALL_VARIABLES)
+    process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if);
+    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    while(stack->size != 0)
     {
-        char str[] = "end_if";
-        const size_t current_len = strlen(str);
-        snprintf(str + current_len, sizeof(str) - current_len, "%lu", *counter_of_if);
-        strncpy(((*all_labels)[index]).name, str, strlen(str));
+        Stack_Elem_t element = 0;
+        error = stack_pop(stack, &element);
+        if (error != NO_ERRORS)
+        {
+            fprintf(stderr, "error of stack = %d\n", error);
+            abort();
+        }
+        fprintf(file_pointer, "end_if%d:\n", (int)element);
+        size_t index = 0;
+        while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+        {
+            index++;
+        }
+        if (index < SIZE_OF_ALL_VARIABLES)
+        {
+            char str[] = "end_if";
+            const size_t current_len = strlen(str);
+            snprintf(str + current_len, sizeof(str) - current_len, "%d:", (int)element);
+            strncpy(((*all_labels)[index]).name, str, strlen(str));
+        }
     }
+    bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, stack);
     return;
 }
 
@@ -255,4 +294,122 @@ static void process_operation(struct Value *value, FILE *file_pointer)
         default: return;
     }
     return;
+}
+
+static void process_comparison_operation(struct Value *value, FILE *file_pointer)
+{
+    if (value == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING COMPARISON OPERATION\n");
+        abort();
+    }
+    switch(value->comp_operation)
+    {
+        case OP_MORE:
+        {
+            fprintf(file_pointer, "ja ");
+            return;
+        }
+        case OP_MORE_OR_EQUAL:
+        {
+            fprintf(file_pointer, "jae ");
+            return;
+        }
+        case OP_LESS:
+        {
+            fprintf(file_pointer, "jb ");
+            return;
+        }
+        case OP_LESS_OR_EQUAL:
+        {
+            fprintf(file_pointer, "jbe ");
+            return;
+        }
+        case OP_EQUAL:
+        {
+            fprintf(file_pointer, "je ");
+            return;
+        }
+        case OP_NOT_EQUAL:
+        {
+            fprintf(file_pointer, "jne ");
+            return;
+        }
+        default: return;
+    }
+}
+
+static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    if (file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
+        abort();
+    }
+    process_expression_after_comparison(root->right, file_pointer, all_variables, all_labels);
+    fprintf(file_pointer, "push ax\n");
+    process_expression_after_comparison(root->left, file_pointer, all_variables, all_labels);
+    process_comparison_operation(&(root->value), file_pointer);
+    fprintf(file_pointer, "ax ");
+    fprintf(file_pointer, "begin_if%lu:\n", *counter_of_if);
+    size_t index = 0;
+    while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+    {
+        index++;
+    }
+    if (index < SIZE_OF_ALL_VARIABLES)
+    {
+        char str[] = "begin_if";
+        const size_t current_len = strlen(str);
+        snprintf(str + current_len, sizeof(str) - current_len, "%lu:", *counter_of_if);
+        strncpy(((*all_labels)[index]).name, str, strlen(str));
+        index++;
+    }
+    fprintf(file_pointer, "jmp end_if%lu:\n", *counter_of_if);
+    return;
+}
+
+
+static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    if (file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
+        abort();
+    }
+    process_expression_after_comparison(root->left, file_pointer, all_variables, all_labels);
+    process_expression_after_comparison(root->right, file_pointer, all_variables, all_labels);
+    switch ((root->value).type)
+    {
+        case NUMBER:
+        {
+            fprintf(file_pointer, "push %f\n", (root->value).number);
+            return;
+        }
+        case VARIABLE:
+        {
+            process_variable(&(root->value), file_pointer, all_variables);
+            return;
+        }
+        case OPERATION:
+        {
+            process_operation(&(root->value), file_pointer);
+            return;
+        }
+        default:
+        {
+            fprintf(stderr, "ERROR OF UNKNOWN TYPE\n");
+            abort();
+        }
+    }
+    return;
+
 }
