@@ -170,7 +170,7 @@ static void process_operator_while(struct Node *root, FILE *file_pointer, struct
         }
         if (index < SIZE_OF_ALL_VARIABLES)
         {
-            char str[] = "end_while";
+            char str[50] = "end_while";
             const size_t current_len = strlen(str);
             snprintf(str + current_len, sizeof(str) - current_len, "%d:", (int)element);
             strncpy(((*all_labels)[index]).name, str, strlen(str));
@@ -226,7 +226,7 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct La
         }
         if (index < SIZE_OF_ALL_VARIABLES)
         {
-            char str[] = "end_if";
+            char str[50] = "end_if";
             const size_t current_len = strlen(str);
             snprintf(str + current_len, sizeof(str) - current_len, "%d:", (int)element);
             strncpy(((*all_labels)[index]).name, str, strlen(str));
@@ -459,14 +459,18 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
     }
     fprintf(file_pointer, "%s%lu:\n", str_begin, counter);
     size_t index = 0;
+    const size_t current_len = strlen(str_begin);
+    snprintf(str_begin + current_len, sizeof(str_begin) - current_len, "%lu:", counter);
     while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
     {
+        if (strcasecmp(str_begin, ((*all_labels)[index]).name) == 0)
+        {
+            index = SIZE_OF_ALL_VARIABLES;
+        }
         index++;
     }
     if (index < SIZE_OF_ALL_VARIABLES)
     {
-        const size_t current_len = strlen(str_begin);
-        snprintf(str_begin + current_len, sizeof(str_begin) - current_len, "%lu:", counter);
         strncpy(((*all_labels)[index]).name, str_begin, strlen(str_begin));
         index++;
     }

@@ -1,28 +1,14 @@
 push 1.000000
 push [0]
-push 2.000000
-push ax
-pop [0]
-ja ax begin_if1:
-jmp end_if1:
-begin_if1:
 push 10.000000
 push ax
 pop [0]
-jb ax begin_while1:
-jmp end_while1:
-begin_while1:
+jb ax begin_if1:
+jmp end_if1:
+begin_if1:
 pop [0]
 push 1.000000
 add
 push [0]
-push 10.000000
-push ax
-pop [0]
-jb ax begin_while1:
-jmp end_while1:
-end_while1:
 end_if1:
-push 88.000000
-push [1]
 hlt
