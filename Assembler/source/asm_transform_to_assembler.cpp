@@ -7,16 +7,17 @@
 #include "../../Reader/include/tree.h"
 #include "../../Processor/include/processor.h"
 #include "stack.h"
-static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
-static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
 static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
 static void process_variable(struct Value *value, FILE *file_pointer, struct Label **all_variables);
 static void process_operation(struct Value *value, FILE *file_pointer);
-static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack);
-static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if);
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
+static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, Programm_operators operator_);
 static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels);
 static void process_comparison_operation(struct Value *value, FILE *file_pointer);
+static void process_operator_while(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 
 
 Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels **all_labels)
@@ -39,20 +40,34 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     {
         all_variables[index].address = -1;
     }
-    struct MyStack stack = {0};
+    struct MyStack stack_if = {0};
+    struct MyStack stack_while = {0};
     Errors error = NO_ERRORS;
-    error = STACK_CTOR(&stack, 10);
+    error = STACK_CTOR(&stack_if, 10);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    error = STACK_CTOR(&stack_while, 10);
     if (error != NO_ERRORS)
     {
         fprintf(stderr, "error of stack = %d\n", error);
         abort();
     }
     size_t counter_of_if = 0;
-    bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if, &stack);
+    size_t counter_of_while = 0;
+    bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if, &counter_of_while, &stack_if, &stack_while);
     fprintf(file_pointer, "hlt\n");
     free(all_variables);
     fclose(file_pointer);
-    error = stack_destructor(&stack);
+    error = stack_destructor(&stack_if);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    error = stack_destructor(&stack_while);
     if (error != NO_ERRORS)
     {
         fprintf(stderr, "error of stack = %d\n", error);
@@ -61,7 +76,7 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     return NO_ASM_ERRORS;
 }
 
-static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
+static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while)
 {
     if (root == NULL)
     {
@@ -72,18 +87,18 @@ static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label *
         fprintf(stderr, "ERROR OF WRITING TO FILE\n");
         abort();
     }
-    bypass_of_tree(root->left, file_pointer, all_variables, all_labels, counter_of_if, stack);
-    choose_way_of_operating(root, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    bypass_of_tree(root->left, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    choose_way_of_operating(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
     if ((root->value).type != OPERATOR ||
         ((root->value).operator_ != OPERATOR_IF &&
          (root->value).operator_ != OPERATOR_WHILE))
     {
-        bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, stack);
+        bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
     }
     return;
 }
 
-static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
+static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while)
 {
     if (root == NULL || file_pointer == NULL)
     {
@@ -103,18 +118,77 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
         }
         case OPERATOR_IF:
         {
-            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if, stack);
+            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
             return;
         }
-        // case OPERATOR_WHILE:
-        // {
-        //     process_operator_while(root, file_pointer);
-        //     return;
-        // }
+        case OPERATOR_WHILE:
+        {
+            process_operator_while(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+            return;
+        }
         default: return;
     }
 }
-static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, struct MyStack *stack)
+
+static void process_operator_while(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING OPERATOR WHILE\n");
+        abort();
+    }
+    (*counter_of_while)++;
+    Errors error = stack_push(stack_while, (double)(*counter_of_while));
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, OPERATOR_WHILE);
+    fprintf(file_pointer, "begin_while%lu:\n", *counter_of_while);
+    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    if (stack_while->size == 0)
+    {
+        bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    }
+    while (stack_while->size != 0)
+    {
+        Stack_Elem_t element = 0;
+        error = stack_pop(stack_while, &element);
+        if (error != NO_ERRORS)
+        {
+            fprintf(stderr, "error of stack = %d\n", error);
+            abort();
+        }
+        size_t counter = (size_t)element;
+        process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if, &counter, OPERATOR_WHILE);
+        fprintf(file_pointer, "end_while%d:\n", (int)element);
+        size_t index = 0;
+        while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+        {
+            index++;
+        }
+        if (index < SIZE_OF_ALL_VARIABLES)
+        {
+            char str[] = "end_while";
+            const size_t current_len = strlen(str);
+            snprintf(str + current_len, sizeof(str) - current_len, "%d:", (int)element);
+            strncpy(((*all_labels)[index]).name, str, strlen(str));
+        }
+        if (element > 1)
+        {
+            bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+        }
+    }
+    if (*counter_of_while == 1)
+    {
+        bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    }
+    //bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    return;
+}
+
+static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while)
 {
     if (root == NULL || file_pointer == NULL)
     {
@@ -122,18 +196,23 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct La
         abort();
     }
     (*counter_of_if)++;
-    Errors error = stack_push(stack, (double)(*counter_of_if));
+    Errors error = stack_push(stack_if, (double)(*counter_of_if));
     if (error != NO_ERRORS)
     {
         fprintf(stderr, "error of stack = %d\n", error);
         abort();
     }
-    process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if);
-    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, stack);
-    while(stack->size != 0)
+    process_comparison_expression(root->left, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, OPERATOR_IF);
+    fprintf(file_pointer, "begin_if%lu:\n", *counter_of_if);
+    bypass_of_tree(root->right, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    if (stack_if->size == 0)
+    {
+        bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    }
+    while (stack_if->size != 0)
     {
         Stack_Elem_t element = 0;
-        error = stack_pop(stack, &element);
+        error = stack_pop(stack_if, &element);
         if (error != NO_ERRORS)
         {
             fprintf(stderr, "error of stack = %d\n", error);
@@ -152,8 +231,16 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct La
             snprintf(str + current_len, sizeof(str) - current_len, "%d:", (int)element);
             strncpy(((*all_labels)[index]).name, str, strlen(str));
         }
+        if (element > 1)
+        {
+            bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+        }
     }
-    bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, stack);
+    if (*counter_of_if == 1)
+    {
+        bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+    }
+    //bypass_of_tree(root->node_after_operator, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
     return;
 }
 
@@ -339,7 +426,7 @@ static void process_comparison_operation(struct Value *value, FILE *file_pointer
     }
 }
 
-static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if)
+static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, Programm_operators operator_)
 {
     if (root == NULL)
     {
@@ -355,7 +442,22 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
     process_expression_after_comparison(root->left, file_pointer, all_variables, all_labels);
     process_comparison_operation(&(root->value), file_pointer);
     fprintf(file_pointer, "ax ");
-    fprintf(file_pointer, "begin_if%lu:\n", *counter_of_if);
+    char str_begin[50] = "";
+    char str_end[50] = "";
+    size_t counter = 0;
+    if (operator_ == OPERATOR_IF)
+    {
+        strncpy(str_begin, "begin_if", 8);
+        strncpy(str_end, "end_if", 6);
+        counter = *counter_of_if;
+    }
+    else if (operator_ == OPERATOR_WHILE)
+    {
+        strncpy(str_begin, "begin_while", 11);
+        strncpy(str_end, "end_while", 9);
+        counter = *counter_of_while;
+    }
+    fprintf(file_pointer, "%s%lu:\n", str_begin, counter);
     size_t index = 0;
     while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
     {
@@ -363,13 +465,13 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
     }
     if (index < SIZE_OF_ALL_VARIABLES)
     {
-        char str[] = "begin_if";
-        const size_t current_len = strlen(str);
-        snprintf(str + current_len, sizeof(str) - current_len, "%lu:", *counter_of_if);
-        strncpy(((*all_labels)[index]).name, str, strlen(str));
+        const size_t current_len = strlen(str_begin);
+        snprintf(str_begin + current_len, sizeof(str_begin) - current_len, "%lu:", counter);
+        strncpy(((*all_labels)[index]).name, str_begin, strlen(str_begin));
         index++;
     }
-    fprintf(file_pointer, "jmp end_if%lu:\n", *counter_of_if);
+    fprintf(file_pointer, "jmp %s%lu:\n", str_end, counter);
+
     return;
 }
 
