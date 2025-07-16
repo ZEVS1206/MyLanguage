@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define ON_DEBUG(...) __VA_ARGS__
@@ -47,13 +47,14 @@ enum Function_name
 
 enum Value_type
 {
-    UNKNOWN_TYPE   = 0,
-    VARIABLE       = 1,
-    NUMBER         = 2,
-    OPERATION      = 3,
-    FUNCTION       = 4,
-    OPERATOR       = 5,
-    COMP_OPERATION = 6
+    UNKNOWN_TYPE      = 0,
+    VARIABLE          = 1,
+    NUMBER            = 2,
+    OPERATION         = 3,
+    FUNCTION          = 4,
+    OPERATOR          = 5,
+    COMP_OPERATION    = 6,
+    BUILT_IN_FUNCTION = 7
 };
 
 enum Variables
@@ -84,7 +85,8 @@ enum Programm_operators
     OPERATOR_CURLY_BRACKET_OPEN   = 7,
     OPERATOR_CURLY_BRACKET_CLOSE  = 8,
     OPERATOR_SQUARE_BRACKET_OPEN  = 9,
-    OPERATOR_SQUARE_BRACKET_CLOSE = 10
+    OPERATOR_SQUARE_BRACKET_CLOSE = 10,
+    OPERATOR_COMMA                = 11
 };
 
 enum Comparison_operations
@@ -109,6 +111,7 @@ struct Value
         char variable_name[100];
         Programm_operators operator_;
         Comparison_operations comp_operation;
+        char function_name[100];
         Function_name function;
     };
 };
@@ -157,6 +160,9 @@ struct Tree
 const struct Function G_functions[] = {{"sin", FUNC_SIN, sin},
                                        {"cos", FUNC_COS, cos}};
 const size_t size_of_functions = sizeof(G_functions) / sizeof(Function);
+
+// const char *built_in_functions[] = {"print", "input"};
+// const size_t size_of_built_in_functions = sizeof(built_in_functions) / sizeof(char *);
 
 
 Errors_of_tree tree_constructor(struct Tree *tree);

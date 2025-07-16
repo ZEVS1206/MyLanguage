@@ -7,10 +7,14 @@
 #include "tree_input.h"
 #include "tree_tex_dump.h"
 
+const char *built_in_functions[] = {"print", "input"};
+const size_t size_of_built_in_functions = sizeof(built_in_functions) / sizeof(char *);
+
 //static void parse_information_from_file_by_staples(struct Node *root, char **buffer, char *end_pointer);
 static bool isbracket(const char symbol);
 static void parse_information_from_file_to_lexical_analyze_array(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *len_of_lexical_analyze_array);
-static bool parse_operation_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
+//static bool parse_operation_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
+static void parse_function_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
 static bool parse_operator_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
 static bool parse_comp_operation_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
 static void parse_variable_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array);
@@ -27,6 +31,9 @@ static void get_expression_with_pow(struct Node **root, struct Node *lexical_ana
 static void get_expression_with_comparison_operations(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_assignment_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_functions_parametres(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_assignment_operator_or_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_if_or_while_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void syntax_error(char **buffer, int *index);
 static size_t get_size_of_file(FILE *file_pointer);
@@ -151,27 +158,27 @@ static void transform_to_variable(const char *str, struct Value *value)
     return;
 }
 
-static int  transform_to_function(const char *str, struct Value *value)
-{
-    if (str == NULL || value == NULL)
-    {
-        return 0;
-    }
-    for (size_t index = 0; index < size_of_functions; index++)
-    {
-        if (strcasecmp(str, G_functions[index].function_str_name) == 0)
-        {
-            value->function = G_functions[index].function_name;
-            value->type     = FUNCTION;
-            break;
-        }
-    }
-    if (value->type == FUNCTION)
-    {
-        return 1;
-    }
-    return 0;
-}
+// static int  transform_to_function(const char *str, struct Value *value)
+// {
+//     if (str == NULL || value == NULL)
+//     {
+//         return 0;
+//     }
+//     for (size_t index = 0; index < size_of_functions; index++)
+//     {
+//         if (strcasecmp(str, G_functions[index].function_str_name) == 0)
+//         {
+//             value->function = G_functions[index].function_name;
+//             value->type     = FUNCTION;
+//             break;
+//         }
+//     }
+//     if (value->type == FUNCTION)
+//     {
+//         return 1;
+//     }
+//     return 0;
+// }
 
 void transform_to_arithmetic_operation(const char symbol, struct Value *value)
 {
@@ -359,13 +366,96 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
     return buffer;
 }
 
-
-static void syntax_error(char **buffer, int *index)
+static void get_functions_parametres(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    printf("Syntax Error! At index %d wait %c\n", *index, *buffer[0]);
-    abort();
+    if (*index == len_of_lexical_analyze_array)
+    {
+        return;
+    }
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
+    while (((lexical_analyze_array[*index]).value).operator_ == OPERATOR_COMMA)
+    {
+        struct Value new_node_value = (lexical_analyze_array[*index]).value;
+        (*index)++;
+        ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
+        ON_DEBUG(getchar();)
+        get_staples_expression_or_number_or_variable(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        ON_DEBUG(printf("go to get_functions_parametres\n");)
+        ON_DEBUG(getchar();)
+        get_functions_parametres(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+        if (error != NO_ERRORS_TREE)
+        {
+            fprintf(stderr, "error = %d\n", error);
+            abort();
+        }
+    }
+    //(*index)++;
+    return;
 }
 
+static void get_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
+{
+    if (*index == len_of_lexical_analyze_array)
+    {
+        return;
+    }
+    struct Value new_node_value = (lexical_analyze_array[*index]).value;
+    (*index)++;
+    if (((lexical_analyze_array[*index]).value).type != OPERATOR ||
+        ((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_OPEN)
+    {
+        fprintf(stderr, "Syntax Error! There is no round bracket after function\n");
+        abort();
+    }
+    (*index)++;
+    struct Node *left_node = NULL;
+    struct Node *right_node = NULL;
+    ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
+    ON_DEBUG(getchar();)
+    get_staples_expression_or_number_or_variable(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    ON_DEBUG(printf("go to get_functions_parametres\n");)
+    ON_DEBUG(getchar();)
+    get_functions_parametres(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    ON_DEBUG(printf("index in get_function = %d\n", *index);)
+    ON_DEBUG(getchar();)
+    if (((lexical_analyze_array[*index]).value).type != OPERATOR ||
+        ((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_CLOSE)
+    {
+        fprintf(stderr, "Syntax Error! There is no round bracket after function parametres\n");
+        abort();
+    }
+    (*index)++;
+    Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+    if (error != NO_ERRORS_TREE)
+    {
+        fprintf(stderr, "error = %d\n", error);
+        abort();
+    }
+    return;
+}
+
+
+static void get_assignment_operator_or_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
+{
+    if (*index == len_of_lexical_analyze_array)
+    {
+        return;
+    }
+    if (((lexical_analyze_array[*index]).value).type == FUNCTION ||
+        ((lexical_analyze_array[*index]).value).type == BUILT_IN_FUNCTION)
+    {
+        ON_DEBUG(printf("go to get_function\n");)
+        ON_DEBUG(getchar();)
+        get_function(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
+        return;
+    }
+    ON_DEBUG(printf("go to get_assignment_operator\n");)
+    ON_DEBUG(getchar();)
+    get_assignment_operator(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
+    return;
+}
 
 static void get_assignment_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
@@ -511,9 +601,10 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
     }
     else
     {
-        ON_DEBUG(printf("go to get_assignment_operator\n");)
+        ON_DEBUG(printf("go to get_assignment_operator_or_function\n");)
         ON_DEBUG(getchar();)
-        get_assignment_operator(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        //get_assignment_operator(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+        get_assignment_operator_or_function(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
         if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
             ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_END)
         {
@@ -961,14 +1052,26 @@ static void parse_information_from_file_to_lexical_analyze_array(struct Node **l
             ON_DEBUG(getchar();)
             char str[100] = {};
             *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
+            char old_str[100] = {};
+            strncpy(old_str, str, strlen(str));
             bool verdict = parse_operator_to_lexical_analyze_array(lexical_analyze_array, str, len_of_lexical_analyze_array);
             if (verdict)
             {
                 continue;
             }
+            char *old_buffer = *buffer;
+            *buffer = get_operation_from_file(str, 100, *buffer, end_pointer);
+            *buffer = old_buffer;
+            if (strcasecmp(str, "(") == 0)
+            {
+                ON_DEBUG(printf("it is a function\n");)
+                ON_DEBUG(getchar();)
+                parse_function_to_lexical_analyze_array(lexical_analyze_array, old_str, len_of_lexical_analyze_array);
+                continue;
+            }
             ON_DEBUG(printf("it is a variable\n");)
             ON_DEBUG(getchar();)
-            parse_variable_to_lexical_analyze_array(lexical_analyze_array, str, len_of_lexical_analyze_array);
+            parse_variable_to_lexical_analyze_array(lexical_analyze_array, old_str, len_of_lexical_analyze_array);
             continue;
         }
         else if (isdigit(*buffer[0]))
@@ -1091,6 +1194,15 @@ static bool parse_operator_to_lexical_analyze_array(struct Node **lexical_analyz
         (*len_of_lexical_analyze_array)++;
         return true;
     }
+    else if (strcasecmp(str, ",") == 0)
+    {
+        ON_DEBUG(printf("it is operator comma\n");)
+        ON_DEBUG(getchar();)
+        ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_COMMA;
+        (*lexical_analyze_array)++;
+        (*len_of_lexical_analyze_array)++;
+        return true;
+    }
     return false;
 }
 
@@ -1121,6 +1233,34 @@ static void parse_number_to_lexical_analyze_array(struct Node **lexical_analyze_
     double value = strtod(str, &end);
     ((*lexical_analyze_array[0]).value).type = NUMBER;
     ((*lexical_analyze_array[0]).value).number = value;
+    (*lexical_analyze_array)++;
+    (*len_of_lexical_analyze_array)++;
+    return;
+}
+
+static void parse_function_to_lexical_analyze_array(struct Node **lexical_analyze_array, char *str, int *len_of_lexical_analyze_array)
+{
+    if (lexical_analyze_array == NULL || str == NULL)
+    {
+        fprintf(stderr, "ERROR OF PARSING FUNCTION\n");
+        abort();
+    }
+    bool flag = false;
+    for (size_t index = 0; index < size_of_built_in_functions; index++)
+    {
+        if (strcasecmp(built_in_functions[index], str) == 0)
+        {
+            ((*lexical_analyze_array[0]).value).type = BUILT_IN_FUNCTION;
+            flag = true;
+            break;
+        }
+    }
+    if (!flag)
+    {
+        ((*lexical_analyze_array[0]).value).type = FUNCTION;
+    }
+    size_t len_of_str = strlen(str);
+    strncpy(((*lexical_analyze_array[0]).value).function_name, str, len_of_str);
     (*lexical_analyze_array)++;
     (*len_of_lexical_analyze_array)++;
     return;

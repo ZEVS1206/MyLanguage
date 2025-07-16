@@ -58,6 +58,8 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     size_t counter_of_if = 0;
     size_t counter_of_while = 0;
     bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if, &counter_of_while, &stack_if, &stack_while);
+    fprintf(file_pointer, "pop [0]\n");
+    fprintf(file_pointer, "out\n");
     fprintf(file_pointer, "hlt\n");
     free(all_variables);
     fclose(file_pointer);

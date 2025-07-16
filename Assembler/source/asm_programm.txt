@@ -3,7 +3,7 @@ push [0]
 push 10.000000
 push ax
 pop [0]
-jb ax begin_if1:
+ja ax begin_if1:
 jmp end_if1:
 begin_if1:
 pop [0]
@@ -11,4 +11,6 @@ push 1.000000
 add
 push [0]
 end_if1:
+pop [0]
+out
 hlt

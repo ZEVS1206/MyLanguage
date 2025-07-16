@@ -191,7 +191,10 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                         Stack_Elem_t operand = (spu->ram)[ram_address];
                         error = stack_push(spu->stack, operand);
                     }
-                    error = stack_pop(spu->stack, &elem);
+                    else 
+                    {
+                        error = stack_pop(spu->stack, &elem);
+                    }
                 }
                 else
                 {

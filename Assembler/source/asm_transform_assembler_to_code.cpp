@@ -472,12 +472,13 @@ int main()
         fprintf(stderr, "error = %d\n", error_asm);
         abort();
     }
-    // for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
-    // {
-    //     printf("Label name = %s\n", (all_labels[index]).name);
-    // }
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        printf("Label name = %s\n", (all_labels[index]).name);
+    }
     
     printf("Assembler started!\n");
+    //Errors_of_ASM error_asm = NO_ASM_ERRORS;
 
     struct CMD all_commands[] = {{"push", CMD_PUSH},
                                  {"pop",  CMD_POP},
