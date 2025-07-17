@@ -10,7 +10,9 @@
 static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
-static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables);
+static void process_built_in_function(struct Node *root, FILE *file_pointer, struct Label **all_variables);
+static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Label **all_variables, size_t *counter_of_parametres);
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables, size_t *counter_of_parametres);
 static void process_variable(struct Value *value, FILE *file_pointer, struct Label **all_variables);
 static void process_operation(struct Value *value, FILE *file_pointer);
 static void process_operator_if(struct Node *root, FILE *file_pointer, struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
@@ -58,8 +60,8 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     size_t counter_of_if = 0;
     size_t counter_of_while = 0;
     bypass_of_tree(tree->root, file_pointer, &all_variables, all_labels, &counter_of_if, &counter_of_while, &stack_if, &stack_while);
-    fprintf(file_pointer, "pop [0]\n");
-    fprintf(file_pointer, "out\n");
+    // fprintf(file_pointer, "pop [0]\n");
+    // fprintf(file_pointer, "out\n");
     fprintf(file_pointer, "hlt\n");
     free(all_variables);
     fclose(file_pointer);
@@ -107,28 +109,41 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
         fprintf(stderr, "ERROR OF OPERATING TREE\n");
         abort();
     }
-    if ((root->value).type != OPERATOR)
+    // if ((root->value).type != OPERATOR)
+    // {
+    //     return;
+    // }
+    if ((root->value).type == OPERATOR)
+    {
+        switch ((root->value).operator_)
+        {
+            case OPERATOR_ASSIGNMENT:
+            {
+                process_operator_assignment(root, file_pointer, all_variables);
+                return;
+            }
+            case OPERATOR_IF:
+            {
+                process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+                return;
+            }
+            case OPERATOR_WHILE:
+            {
+                process_operator_while(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
+                return;
+            }
+            default: return;
+        }
+    }
+    else if ((root->value).type == BUILT_IN_FUNCTION)
+    {
+        //printf("call process_built_in_function from choose_way_of_operating with function = %s\n", (root->value).function_name);
+        //getchar();
+        process_built_in_function(root, file_pointer, all_variables);
+    }
+    else 
     {
         return;
-    }
-    switch ((root->value).operator_)
-    {
-        case OPERATOR_ASSIGNMENT:
-        {
-            process_operator_assignment(root, file_pointer, all_variables);
-            return;
-        }
-        case OPERATOR_IF:
-        {
-            process_operator_if(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
-            return;
-        }
-        case OPERATOR_WHILE:
-        {
-            process_operator_while(root, file_pointer, all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
-            return;
-        }
-        default: return;
     }
 }
 
@@ -246,6 +261,125 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct La
     return;
 }
 
+static void process_built_in_function(struct Node *root, FILE *file_pointer, struct Label **all_variables)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING BUILT IN FUNCTION\n");
+        abort();
+    }
+    if (!root->is_processed)
+    {
+        root->is_processed = true;
+    }
+    else
+    {
+        return;
+    }
+    // bool is_built_in = false;
+    // for (size_t index = 0; index < size_of_built_in_functions; index++)
+    // {
+    //     if (strcasecmp((root->value).function_name, built_in_functions[index]) == 0)
+    //     {
+    //         is_built_in = true;
+    //         break;
+    //     }
+    // }
+    // if (!is_built_in)
+    // {
+    //     fprintf(stderr, "ERROR! Function %s is not built in and has not definition\n", (root->value).function_name);
+    //     abort();
+    // }
+    // if ((root->value).type != BUILT_IN_FUNCTION)
+    // {
+    //     fprintf(stderr, "ERROR! Function %s is not built in and has not definition\n", (root->value).function_name);
+    //     abort();
+    // }
+    if (strcasecmp((root->value).function_name, "input") == 0)
+    {
+        fprintf(file_pointer, "in\n");
+    }
+
+    size_t counter_of_parametres = 0;
+    process_expression_after_assignment(root->left, file_pointer, all_variables, &counter_of_parametres);
+    add_parametres_for_function(root->right, file_pointer, all_variables, &counter_of_parametres);
+    size_t index = 0;
+    for (index = LOCAL_MEMORY_START_ADDRESS; index < (counter_of_parametres + LOCAL_MEMORY_START_ADDRESS) && index < RAM_SIZE; index++)
+    {
+        fprintf(file_pointer, "push [%lu]\n", index);
+    }
+    index--;
+    if (strcasecmp((root->value).function_name, "print") == 0)
+    {
+        if (counter_of_parametres == 0)
+        {
+            fprintf(file_pointer, "push %d\n", 10);
+            fprintf(file_pointer, "push %d\n", TOXIC + 1);
+            fprintf(file_pointer, "out\n");
+        }
+        for (; index >= LOCAL_MEMORY_START_ADDRESS; index--)
+        {
+            fprintf(file_pointer, "pop [%lu]\n", index);
+            fprintf(file_pointer, "out\n");
+        }
+    }
+    return;
+}
+
+static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Label **all_variables, size_t *counter_of_parametres)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    //(*counter_of_parametres)++;
+    if (file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
+        abort();
+    }
+    add_parametres_for_function(root->left, file_pointer, all_variables, counter_of_parametres);
+    add_parametres_for_function(root->right, file_pointer, all_variables, counter_of_parametres);
+    switch ((root->value).type)
+    {
+        case NUMBER:
+        {
+            fprintf(file_pointer, "push %f\n", (root->value).number);
+            (*counter_of_parametres)++;
+            return;
+        }
+        case VARIABLE:
+        {
+            process_variable(&(root->value), file_pointer, all_variables);
+            (*counter_of_parametres)++;
+            return;
+        }
+        case OPERATION:
+        {
+            process_operation(&(root->value), file_pointer);
+            (*counter_of_parametres)--;
+            return;
+        }
+        case OPERATOR:
+        {
+            if ((root->value).operator_ == OPERATOR_COMMA)
+            {
+                //add_parametres_for_function(root->right, file_pointer, all_variables);
+                //process_built_in_function(root, file_pointer, all_variables);
+                return;
+            }
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "ERROR OF UNKNOWN TYPE\n");
+            abort();
+        }
+    }
+    return;
+}
+
+
 static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables)
 {
     if (root == NULL || file_pointer == NULL)
@@ -270,7 +404,8 @@ static void process_operator_assignment(struct Node *root, FILE *file_pointer, s
             break;
         }
     }
-    process_expression_after_assignment(root->right, file_pointer, all_variables);
+    size_t counter_of_parametres = 0;
+    process_expression_after_assignment(root->right, file_pointer, all_variables, &counter_of_parametres);
     if (!is_exits)
     {
         ((*all_variables)[empty_index]).address = empty_index;
@@ -282,7 +417,7 @@ static void process_operator_assignment(struct Node *root, FILE *file_pointer, s
     return;
 }
 
-static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables)
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Label **all_variables, size_t *counter_of_parametres)
 {
     if (root == NULL)
     {
@@ -294,23 +429,34 @@ static void process_expression_after_assignment(struct Node *root, FILE *file_po
         abort();
     }
 
-    process_expression_after_assignment((root->left), file_pointer, all_variables);
-    process_expression_after_assignment((root->right), file_pointer, all_variables);
+    process_expression_after_assignment((root->left), file_pointer, all_variables, counter_of_parametres);
+    process_expression_after_assignment((root->right), file_pointer, all_variables, counter_of_parametres);
     switch ((root->value).type)
     {
         case NUMBER:
         {
             fprintf(file_pointer, "push %f\n", (root->value).number);
+            (*counter_of_parametres)++;
             return;
         }
         case VARIABLE:
         {
             process_variable(&(root->value), file_pointer, all_variables);
+            (*counter_of_parametres)++;
             return;
         }
         case OPERATION:
         {
             process_operation(&(root->value), file_pointer);
+            (*counter_of_parametres)--;
+            return;
+        }
+        case BUILT_IN_FUNCTION:
+        {
+            //printf("call process_built_in_function from process_expression_after_assignment with function = %s\n", (root->value).function_name);
+            //getchar();
+            process_built_in_function(root, file_pointer, all_variables);
+            (*counter_of_parametres)++;
             return;
         }
         default:
@@ -439,11 +585,11 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
         fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
         abort();
     }
-    process_expression_after_comparison(root->right, file_pointer, all_variables, all_labels);
-    fprintf(file_pointer, "push ax\n");
     process_expression_after_comparison(root->left, file_pointer, all_variables, all_labels);
+    fprintf(file_pointer, "pop dx\n");
+    process_expression_after_comparison(root->right, file_pointer, all_variables, all_labels);
     process_comparison_operation(&(root->value), file_pointer);
-    fprintf(file_pointer, "ax ");
+    fprintf(file_pointer, "dx ");
     char str_begin[50] = "";
     char str_end[50] = "";
     size_t counter = 0;
@@ -463,8 +609,10 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
     size_t index = 0;
     const size_t current_len = strlen(str_begin);
     snprintf(str_begin + current_len, sizeof(str_begin) - current_len, "%lu:", counter);
-    while (strlen(((*all_labels)[index]).name) != 0 && index < SIZE_OF_ALL_VARIABLES)
+    //printf("strlen(((*all_labels)[index]).name) = %lu\n", strlen(((*all_labels)[index]).name));
+    while (index < SIZE_OF_ALL_VARIABLES && strlen(((*all_labels)[index]).name) != 0)
     {
+        //printf("index = %lu\n", index);
         if (strcasecmp(str_begin, ((*all_labels)[index]).name) == 0)
         {
             index = SIZE_OF_ALL_VARIABLES;

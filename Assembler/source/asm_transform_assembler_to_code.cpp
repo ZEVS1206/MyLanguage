@@ -268,7 +268,7 @@ static Errors_of_ASM parse_jump_cmds(struct ASM *Asm, size_t index, char *comman
     {
         if (strcasecmp(str, ((Asm->table)->labels)[k].name) == 0)
         {
-            printf("label_name in parse jump cmds = %s\n", ((Asm->table)->labels)[k].name);
+            //printf("label_name in parse jump cmds = %s\n", ((Asm->table)->labels)[k].name);
             (Asm->commands)[index].element = (double)((Asm->table)->labels)[k].address;
             break;
         }
@@ -472,10 +472,10 @@ int main()
         fprintf(stderr, "error = %d\n", error_asm);
         abort();
     }
-    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
-    {
-        printf("Label name = %s\n", (all_labels[index]).name);
-    }
+    // for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    // {
+    //     printf("Label name = %s\n", (all_labels[index]).name);
+    // }
     
     printf("Assembler started!\n");
     //Errors_of_ASM error_asm = NO_ASM_ERRORS;

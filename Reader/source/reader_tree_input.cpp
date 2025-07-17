@@ -6,6 +6,7 @@
 #include "tree.h"
 #include "tree_input.h"
 #include "tree_tex_dump.h"
+//#include "../../Assembler/include/assembler.h"
 
 const char *built_in_functions[] = {"print", "input"};
 const size_t size_of_built_in_functions = sizeof(built_in_functions) / sizeof(char *);
@@ -158,27 +159,6 @@ static void transform_to_variable(const char *str, struct Value *value)
     return;
 }
 
-// static int  transform_to_function(const char *str, struct Value *value)
-// {
-//     if (str == NULL || value == NULL)
-//     {
-//         return 0;
-//     }
-//     for (size_t index = 0; index < size_of_functions; index++)
-//     {
-//         if (strcasecmp(str, G_functions[index].function_str_name) == 0)
-//         {
-//             value->function = G_functions[index].function_name;
-//             value->type     = FUNCTION;
-//             break;
-//         }
-//     }
-//     if (value->type == FUNCTION)
-//     {
-//         return 1;
-//     }
-//     return 0;
-// }
 
 void transform_to_arithmetic_operation(const char symbol, struct Value *value)
 {
@@ -368,7 +348,7 @@ static char * get_operation_from_file(char *str, size_t size_of_str, char *buffe
 
 static void get_functions_parametres(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -397,7 +377,7 @@ static void get_functions_parametres(struct Node **root, struct Node *lexical_an
 
 static void get_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -418,8 +398,6 @@ static void get_function(struct Node **root, struct Node *lexical_analyze_array,
     ON_DEBUG(printf("go to get_functions_parametres\n");)
     ON_DEBUG(getchar();)
     get_functions_parametres(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
-    ON_DEBUG(printf("index in get_function = %d\n", *index);)
-    ON_DEBUG(getchar();)
     if (((lexical_analyze_array[*index]).value).type != OPERATOR ||
         ((lexical_analyze_array[*index]).value).operator_ != OPERATOR_ROUND_BRACKET_CLOSE)
     {
@@ -433,13 +411,15 @@ static void get_function(struct Node **root, struct Node *lexical_analyze_array,
         fprintf(stderr, "error = %d\n", error);
         abort();
     }
+    ON_DEBUG(printf("index in get_function = %d\n", *index);)
+    ON_DEBUG(getchar();)
     return;
 }
 
 
 static void get_assignment_operator_or_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -459,7 +439,7 @@ static void get_assignment_operator_or_function(struct Node **root, struct Node 
 
 static void get_assignment_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -481,10 +461,21 @@ static void get_assignment_operator(struct Node **root, struct Node *lexical_ana
     }
     struct Value new_node_value = (lexical_analyze_array[*index]).value;
     (*index)++;
-    ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
-    ON_DEBUG(getchar();)
+    if (((lexical_analyze_array[*index]).value).type == FUNCTION ||
+        ((lexical_analyze_array[*index]).value).type == BUILT_IN_FUNCTION)
+    {
+        ON_DEBUG(printf("go to get_function in get_assignment_operator\n");)
+        ON_DEBUG(getchar();)
+        get_function(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    }
+    else
+    {
+        ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
+        ON_DEBUG(getchar();)
+        get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    }
     //get_expression_with_comparison_operations(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
-    get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    //get_staples_expression_or_number_or_variable(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
     Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
     if (error != NO_ERRORS_TREE)
     {
@@ -505,7 +496,7 @@ static void get_assignment_operator(struct Node **root, struct Node *lexical_ana
 
 static void get_if_or_while_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -580,7 +571,7 @@ static void get_if_or_while_operator(struct Node **root, struct Node *lexical_an
 
 static void get_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -610,6 +601,8 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
         {
             struct Value new_node_value = (lexical_analyze_array[*index]).value;
             (*index)++;
+            ON_DEBUG(printf("go to get_operator after operator end\n");)
+            ON_DEBUG(getchar();)
             get_operator(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
             Errors_of_tree error = create_new_node(root, &(new_node_value), left_node, right_node);
             if (error != NO_ERRORS_TREE)
@@ -636,7 +629,7 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
 
 static void get_number(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -655,12 +648,11 @@ static void get_number(struct Node **root, struct Node *lexical_analyze_array, i
 
 static void get_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
     
-    ON_DEBUG(printf("index in get_variable = %d\n", *index);)
     if (((lexical_analyze_array[*index]).value).type == VARIABLE)
     {
         Errors_of_tree error = create_new_node(root, &((lexical_analyze_array[*index]).value), NULL, NULL);
@@ -671,102 +663,15 @@ static void get_variable(struct Node **root, struct Node *lexical_analyze_array,
         }
         (*index)++;
     }
+    ON_DEBUG(printf("index in get_variable = %d\n", *index);)
+    ON_DEBUG(getchar();)
     return;
 }
-
-// static void get_function_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
-// {
-//     if (*buffer == end_pointer)
-//     {
-//         return;
-//     }
-//
-//     char *old = *buffer;
-//     *buffer = skip_spaces(*buffer, end_pointer);
-//     *index += *buffer - old;
-//     int old_index = *index;
-//     char str[100] = {0};
-//     old = *buffer;
-//     *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-//     *index += *buffer - old;
-//     old = *buffer;
-//     *buffer = skip_spaces(*buffer, end_pointer);
-//     *index += *buffer - old;
-//     struct Node *left_node = NULL;
-//     if (old_index == *index)
-//     {
-//         syntax_error(buffer, index);
-//     }
-//     ON_DEBUG(printf("index in get_function_from_file = %d\n", *index);)
-//     struct Value new_node_value = {};
-//     int verdict = transform_to_function(str, &new_node_value);
-//     if (*buffer[0] != '(')
-//     {
-//         syntax_error(buffer, index);
-//     }
-//     (*buffer)++;
-//     while (*buffer[0] != ')')
-//     {
-//         // if (*buffer[0] == '$')
-//         // {
-//         //     break;
-//         // }
-//         //printf("Here!\n");
-//         // printf("*buffer[0] before = %c\n", *buffer[0]);
-//         // while (getchar() != '\n');
-//         // getchar();
-//         ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable\n");)
-//         ON_DEBUG(getchar();)
-//         get_staples_expression_or_number_or_variable(&left_node, buffer, end_pointer, index);
-//         // printf("*buffer[0] after = %d\n", *buffer[0]);
-//         // getchar();
-//         // old = *buffer;
-//         // *buffer = skip_spaces(*buffer, end_pointer);
-//         // *index += *buffer - old;
-//     }
-//     (*buffer)++;
-//     Errors_of_tree error = create_new_node(root, &new_node_value, left_node, NULL);
-//     return;
-// }
-
-
-// static void get_variable_or_function_from_file(struct Node **lexical_analyze_array, char **buffer, char *end_pointer, int *index)
-// {
-//     if (*buffer == end_pointer)
-//     {
-//         return;
-//     }
-//     char *old = *buffer;
-//     *buffer = skip_spaces(*buffer, end_pointer);
-//     //*index += *buffer - old;
-//     char str[100] = {0};
-//     old = *buffer;
-//     *buffer = get_value_from_file(str, 100, *buffer, end_pointer);
-//     struct Value value = {};
-//     int verdict = transform_to_function(str, &value);
-//     ON_DEBUG(printf("index in get_variable_or_function_from_file = %d\n", *index);)
-//     if (verdict == 0)
-//     {
-//         ON_DEBUG(printf("go to get_variable_from_file\n");)
-//         ON_DEBUG(getchar();)
-//         *buffer = old;
-//         get_variable_from_file(root, buffer, end_pointer, index);
-//         return;
-//     }
-//     else
-//     {
-//         ON_DEBUG(printf("go to get_function_from_file\n");)
-//         ON_DEBUG(getchar();)
-//         *buffer = old;
-//         get_function_from_file(root, buffer, end_pointer, index);
-//         return;
-//     }
-// }
 
 
 static void get_expression_with_comparison_operations(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -807,7 +712,7 @@ static void get_expression_with_comparison_operations(struct Node **root, struct
 
 static void get_staples_expression_or_number_or_variable(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -858,7 +763,7 @@ static void get_staples_expression_or_number_or_variable(struct Node **root, str
 }
 static void get_expression_with_pow(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -908,7 +813,7 @@ static void get_expression_with_pow(struct Node **root, struct Node *lexical_ana
 
 static void get_expression_with_mul_or_div(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -959,7 +864,7 @@ static void get_expression_with_mul_or_div(struct Node **root, struct Node *lexi
 
 static void get_expression_with_plus_or_minus(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }
@@ -1008,7 +913,7 @@ static void get_expression_with_plus_or_minus(struct Node **root, struct Node *l
 
 static void parse_information_from_lexical_analyze_array_by_recursive_descent(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index)
 {
-    if (*index == len_of_lexical_analyze_array)
+    if (*index >= len_of_lexical_analyze_array)
     {
         return;
     }

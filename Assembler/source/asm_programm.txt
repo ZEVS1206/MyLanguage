@@ -1,16 +1,31 @@
-push 1.000000
+in
 push [0]
-push 10.000000
-push ax
+push 1.000000
+push [1]
+push 1.000000
+push [2]
+pop [2]
+pop dx
 pop [0]
-ja ax begin_if1:
-jmp end_if1:
-begin_if1:
-pop [0]
+jbe dx begin_while1:
+jmp end_while1:
+begin_while1:
+pop [1]
+pop [2]
+mul
+push [1]
+pop [2]
 push 1.000000
 add
-push [0]
-end_if1:
+push [2]
+pop [2]
+pop dx
 pop [0]
+jbe dx begin_while1:
+jmp end_while1:
+end_while1:
+pop [1]
+push [50]
+pop [50]
 out
 hlt

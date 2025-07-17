@@ -116,7 +116,7 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
     STACK_CTOR(spu->stack, 10);
     spu->registers = (int *) calloc(4, sizeof(int));
     spu->size_of_registers = 4;
-    spu->ram = (Stack_Elem_t *) calloc(RAM_SIZE, sizeof(int));
+    spu->ram = (Stack_Elem_t *) calloc(RAM_SIZE, sizeof(Stack_Elem_t));
     Errors error = NO_ERRORS;
     size_t i = 0;
     bool flag = false;
@@ -268,7 +268,17 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                     return ERROR_OF_NOT_ENOUGH_ELEMENTS_IN_STACK;
                 }
                 Stack_Elem_t element = 0;
-                error = stack_element(spu->stack, &element);
+                //error = stack_element(spu->stack, &element);
+                error = stack_pop(spu->stack, &element);
+                if (compare(element, TOXIC + 1) == 0)
+                {
+                    error = stack_pop(spu->stack, &element);
+                    printf("%c\n", element);
+                }
+                else
+                {
+                    printf("%lf\n", element);
+                }
                 break;
             }
             case CMD_DUMP:
@@ -342,7 +352,8 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                 Stack_Elem_t operand = 0;
                 error = stack_pop(spu->stack, &operand);
                 i++;
-                //printf("register = %d\n", (spu->registers)[reg - 1]);
+                // printf("register = %d\n", (spu->registers)[reg - 1]);
+                // printf("operand = %lf\n", operand);
                 if (compare((spu->registers)[reg - 1], operand) > 0)
                 {
                     int position = (spu->commands)[i];

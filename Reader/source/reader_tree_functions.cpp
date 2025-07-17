@@ -777,6 +777,7 @@ Errors_of_tree create_new_node(struct Node **root, struct Value *value, struct N
             return ERROR_OF_PUSH;
         }
     }
+    (*root)->is_processed = false;
     (*root)->value = *value;
     // (*root)->left = left;
     // (*root)->right = right;

@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define ON_DEBUG(...) __VA_ARGS__
@@ -148,6 +148,7 @@ struct Node
     struct Node *left;
     struct Node *right;
     struct Node *node_after_operator;
+    bool is_processed;
 };
 
 struct Tree

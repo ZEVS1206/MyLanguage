@@ -7,6 +7,7 @@ const int TOXIC = 1985;
 const int VERSION = 1;
 const int ACCURANCY = 2;
 const long long int RAM_SIZE  = 100;
+const long long int LOCAL_MEMORY_START_ADDRESS = 50;
 
 enum Registers
 {

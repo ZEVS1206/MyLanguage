@@ -6,6 +6,8 @@
 
 #define SIZE_OF_ALL_VARIABLES 50
 
+
+
 enum Errors_of_ASM
 {
     NO_ASM_ERRORS              = 0,
@@ -62,6 +64,7 @@ struct ASM
     struct Table_labels *table;
     FILE *file_pointer;
 };
+
 
 
 Errors_of_ASM get_commands(struct ASM *Asm, struct Labels *all_labels, size_t size_of_all_labels);
