@@ -148,6 +148,7 @@ struct Node
     struct Node *left;
     struct Node *right;
     struct Node *node_after_operator;
+    struct Node *node_for_operator_else;
     bool is_processed;
 };
 

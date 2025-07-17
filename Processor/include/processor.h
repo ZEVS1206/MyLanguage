@@ -28,24 +28,25 @@ enum Commands
     CMD_OUT        = 6,
     CMD_IN         = 7,
     CMD_SQRT       = 8,
-    CMD_SIN        = 9,
-    CMD_COS        = 10,
-    CMD_DUMP       = 11,
-    CMD_HLT        = 12,
-    CMD_UNKNOWN    = 13,
-    CMD_JMP        = 14, // jump
-    CMD_JA         = 15, // >
-    CMD_JAE        = 16, // >=
-    CMD_JB         = 17, // <
-    CMD_JBE        = 18, // <=
-    CMD_JE         = 19, // ==
-    CMD_JNE        = 20, // !=
-    CMD_POP        = 21,
-    CMD_LABEL      = 22,
-    CMD_PRINT      = 23,
-    CMD_PRINT_INF  = 24,
-    CMD_PRINT_NONE = 25,
-    CMD_HERE       = 26
+    CMD_DEG        = 9,
+    CMD_SIN        = 10,
+    CMD_COS        = 11,
+    CMD_DUMP       = 12,
+    CMD_HLT        = 13,
+    CMD_UNKNOWN    = 14,
+    CMD_JMP        = 15, // jump
+    CMD_JA         = 16, // >
+    CMD_JAE        = 17, // >=
+    CMD_JB         = 18, // <
+    CMD_JBE        = 19, // <=
+    CMD_JE         = 20, // ==
+    CMD_JNE        = 21, // !=
+    CMD_POP        = 22,
+    CMD_LABEL      = 23,
+    CMD_PRINT      = 24,
+    CMD_PRINT_INF  = 25,
+    CMD_PRINT_NONE = 26,
+    CMD_HERE       = 27
 };
 
 enum Errors_of_CPU

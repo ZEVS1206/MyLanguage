@@ -526,6 +526,11 @@ static void process_operation(struct Value *value, FILE *file_pointer)
             fprintf(file_pointer, "div\n");
             return;
         }
+        case OP_DEG:
+        {
+            fprintf(file_pointer, "deg\n");
+            return;
+        }
         default: return;
     }
     return;

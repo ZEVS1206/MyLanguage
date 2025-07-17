@@ -257,8 +257,19 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                 Stack_Elem_t second_operand = 0;
                 error = stack_pop(spu->stack, &second_operand);
                 error = stack_pop(spu->stack, &first_operand);
+                //printf("first_operand = %lf\nsecond_operand = %lf\n", first_operand, second_operand);
                 error = stack_push(spu->stack, (first_operand / second_operand));
                 //special_dump(&stack);
+                break;
+            }
+            case CMD_DEG:
+            {
+                Stack_Elem_t first_operand = 0;
+                Stack_Elem_t second_operand = 0;
+                error = stack_pop(spu->stack, &second_operand);
+                error = stack_pop(spu->stack, &first_operand);
+                //printf("first_operand = %lf\nsecond_operand = %lf\n", first_operand, second_operand);
+                error = stack_push(spu->stack, (pow(first_operand, second_operand)));
                 break;
             }
             case CMD_OUT:
@@ -270,6 +281,7 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                 Stack_Elem_t element = 0;
                 //error = stack_element(spu->stack, &element);
                 error = stack_pop(spu->stack, &element);
+
                 if (compare(element, TOXIC + 1) == 0)
                 {
                     error = stack_pop(spu->stack, &element);

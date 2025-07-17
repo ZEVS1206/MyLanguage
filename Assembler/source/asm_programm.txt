@@ -1,30 +1,8 @@
-in
+push 5.000000
+push 2.000000
+deg
 push [0]
-push 1.000000
-push [1]
-push 1.000000
-push [2]
-pop [2]
-pop dx
 pop [0]
-jbe dx begin_while1:
-jmp end_while1:
-begin_while1:
-pop [1]
-pop [2]
-mul
-push [1]
-pop [2]
-push 1.000000
-add
-push [2]
-pop [2]
-pop dx
-pop [0]
-jbe dx begin_while1:
-jmp end_while1:
-end_while1:
-pop [1]
 push [50]
 pop [50]
 out
