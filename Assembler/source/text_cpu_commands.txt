@@ -1,15 +1,10 @@
-push 0
-pop ax
-NEXT:
-push ax
-push ax
-mul
-out
-push ax
-push 1
-add
-pop ax
-push ax
-push 10
-jb ax NEXT:
-hlt
+x = input();
+i = 1;
+pr = 1;
+while (i <= x)
+{
+    pr = (pr * i);
+    i = (i + 1);
+}
+print(pr);
+$

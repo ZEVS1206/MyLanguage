@@ -12,9 +12,9 @@
 // #include "../../Reader/include/tree_dump.h"
 
 
-static const int num_of_labels = 10;
+//static const int num_of_labels = 50;
 
-static Errors_of_ASM constructor(struct ASM *Asm);
+static Errors_of_ASM constructor(struct ASM *Asm, size_t size_of_all_labels);
 static Errors_of_ASM destructor(struct ASM *Asm);
 static Errors_of_ASM get_count_of_rows(struct ASM *Asm);
 static Errors_of_ASM parse_word(struct ASM *Asm, int *step, size_t len, size_t index, struct Labels *all_labels, size_t size_of_all_labels);
@@ -99,6 +99,7 @@ static Errors_of_ASM parse_word(struct ASM *Asm, int *step, size_t len, size_t i
     }
     if ((Asm->commands)[index].command[len - 1] == ':')
     {
+        //printf("label = %s\n", (Asm->commands)[index].command);
         error = parse_label(Asm, step, index, all_labels, size_of_all_labels);
 
         // printf("\n\n");
@@ -122,7 +123,7 @@ static Errors_of_ASM parse_word(struct ASM *Asm, int *step, size_t len, size_t i
             return error;
         }
     }
-    else if (strcasecmp((Asm->commands)[index].command, "jmp")    == 0
+    else if (strcasecmp((Asm->commands)[index].command,   "jmp")  == 0
             || strcasecmp((Asm->commands)[index].command, "ja")   == 0
             || strcasecmp((Asm->commands)[index].command, "jae")  == 0
             || strcasecmp((Asm->commands)[index].command, "jb")   == 0
@@ -154,11 +155,18 @@ static Errors_of_ASM parse_label(struct ASM *Asm, int *step, size_t index, struc
     }
     //printf("label_name = %s\n", (Asm->commands)[index].command);
     int fl = 0;
+    //printf("\n\n");
     for (size_t j = 0; j < (Asm->table)->size_of_labels; j++)
     {
         //printf("name = %s\n", ((Asm->table)->labels)[j].name);
         if (strcasecmp(((Asm->table)->labels)[j].name, "") == 0)
         {
+            // size_t k = 0;
+            // if (j != 0)
+            // {
+            //     k = j - 1;
+            // }
+            // printf("LABEL = %s\n", ((Asm->table)->labels)[k].name);
             for (size_t k = 0; k < size_of_all_labels; k++)
             {
                 //printf("label_name = %s\n", (Asm->commands)[index].command);
@@ -264,9 +272,12 @@ static Errors_of_ASM parse_jump_cmds(struct ASM *Asm, size_t index, char *comman
         }
     }
     fscanf(Asm->file_pointer, "%s", str);
+    //printf("str = %s\n", str);
+    //printf("\n\n");
     for (size_t k = 0; k < (Asm->table)->size_of_labels; k++)
     {
-        if (strcasecmp(str, ((Asm->table)->labels)[k].name) == 0)
+        //printf("label name = %s\n", (((Asm->table)->labels)[k]).name);
+        if (strcasecmp(str, (((Asm->table)->labels)[k]).name) == 0)
         {
             //printf("label_name in parse jump cmds = %s\n", ((Asm->table)->labels)[k].name);
             (Asm->commands)[index].element = (double)((Asm->table)->labels)[k].address;
@@ -383,7 +394,7 @@ Errors_of_ASM create_file_with_commands(struct ASM *Asm)
 }
 
 
-static Errors_of_ASM constructor(struct ASM *Asm)
+static Errors_of_ASM constructor(struct ASM *Asm, size_t size_of_all_labels)
 {
     if (Asm == NULL)
     {
@@ -404,7 +415,7 @@ static Errors_of_ASM constructor(struct ASM *Asm)
     {
         return ERROR_OF_CONSTRUCTOR_ASM;
     }
-    (Asm->table)->size_of_labels = (size_t)num_of_labels;
+    (Asm->table)->size_of_labels = size_of_all_labels;
     (Asm->table)->labels = (Label *) calloc((Asm->table)->size_of_labels, sizeof(Label));
     if ((Asm->table)->labels == NULL)
     {
@@ -536,7 +547,7 @@ int main()
         return 1;
     }
 
-    error_asm = constructor(&Asm);
+    error_asm = constructor(&Asm, size_of_all_labels);
     if (error_asm != NO_ASM_ERRORS)
     {
         fprintf(stderr, "error=%d\n", error_asm);
@@ -549,6 +560,10 @@ int main()
         fprintf(stderr, "error=%d\n", error_asm);
         return 1;
     }
+    // for (size_t index = 0; index < (Asm.table)->size_of_labels; index++)
+    // {
+    //     printf("label = %s\n", (((Asm.table)->labels)[index]).name);
+    // }
     error_asm = repeat_get_commands(&Asm);
     if (error_asm != NO_ASM_ERRORS)
     {

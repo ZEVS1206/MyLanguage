@@ -65,6 +65,17 @@ struct ASM
     FILE *file_pointer;
 };
 
+struct Special_elements_for_processing
+{
+    size_t counter_of_if;
+    size_t counter_of_while;
+    size_t counter_of_else;
+    struct MyStack stack_if;
+    struct MyStack stack_while;
+    struct MyStack stack_else;
+    struct Label *all_variables;
+    struct Labels *all_labels;
+};
 
 
 Errors_of_ASM get_commands(struct ASM *Asm, struct Labels *all_labels, size_t size_of_all_labels);

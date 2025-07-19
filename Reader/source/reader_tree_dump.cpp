@@ -135,6 +135,7 @@ static const char * get_operator(Programm_operators operator_)
         case OPERATOR_ASSIGNMENT: return "=";
         case OPERATOR_END:        return ";";
         case OPERATOR_COMMA:      return ",";
+        case OPERATOR_ELSE:       return "else";
         default:                  return "UNKNOWN OPERATOR!";
     }
 }
@@ -215,11 +216,11 @@ static void create_nodes_in_dump(struct Node *root, FILE *file_pointer)
     fprintf(file_pointer, "box%p "
                         "[shape = record,"
                         " label = \"{<node_par>parent = %p|<node_adr>address = %p|<node_t>type = %s|<node_v>value = %s |"
-                        "{<node_l>left_node = %p|<node_r>right_node = %p|<node_ap>node_after_operator = %p}}\"];\n",
+                        "{<node_l>left_node = %p|<node_r>right_node = %p|<node_ap>node_after_operator = %p|<node_fe>node_for_operator_else = %p}}\"];\n",
                         root, root->parent_node, root,
                         get_type_name((root->value).type),
                         str,
-                        root->left, root->right, root->node_after_operator);
+                        root->left, root->right, root->node_after_operator, root->node_for_operator_else);
 
 
     if (root->right != NULL)
@@ -229,6 +230,10 @@ static void create_nodes_in_dump(struct Node *root, FILE *file_pointer)
     if (root->node_after_operator != NULL)
     {
         create_nodes_in_dump(root->node_after_operator, file_pointer);
+    }
+    if (root->node_for_operator_else != NULL)
+    {
+        create_nodes_in_dump(root->node_for_operator_else, file_pointer);
     }
 }
 
@@ -255,8 +260,13 @@ static void create_connections(struct Node *root, FILE *file_pointer)
 
     if (root->node_after_operator != NULL)
     {
-        fprintf(file_pointer, "box%p:<node_ap>->box%p [color=green];\n", root, (root->node_after_operator));
+        fprintf(file_pointer, "box%p:<node_ap>->box%p [color=blue];\n", root, (root->node_after_operator));
         create_connections(root->node_after_operator, file_pointer);
+    }
+    if (root->node_for_operator_else != NULL)
+    {
+        fprintf(file_pointer, "box%p:<node_fe>->box%p [color=orange];\n", root, (root->node_for_operator_else));
+        create_connections(root->node_for_operator_else, file_pointer);
     }
 }
 

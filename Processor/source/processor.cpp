@@ -123,6 +123,7 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
     //printf("ax bx cx dx\n");
     while (i < spu->size_of_commands)
     {
+        //printf("i = %lu\n", i);
         // for (size_t k = 0; k < (spu->size_of_registers); k++)
         // {
         //     printf("%d ", (spu->registers)[k]);

@@ -1,9 +1,123 @@
-push 5.000000
-push 2.000000
-deg
+in
 push [0]
+in
+push [1]
+in
+push [2]
+push 0.000000
+push [3]
+push 0.000000
+push [4]
+push 0.000000
+push [5]
 pop [0]
+pop dx
+push 0.000000
+je dx begin_if1:
+jmp begin_else1:
+begin_if1:
+pop [1]
+pop dx
+push 0.000000
+jne dx begin_if2:
+jmp begin_else2:
+begin_if2:
+push 0.000000
+pop [2]
+pop [1]
+div
+sub
+push [3]
+pop [3]
 push [50]
 pop [50]
 out
+jmp end_if2:
+begin_else2:
+push 10
+push 1986
+out
+end_else2:
+end_if2:
+jmp end_if1:
+begin_else1:
+pop [1]
+pop [1]
+mul
+push 4.000000
+pop [0]
+mul
+pop [2]
+mul
+sub
+push [6]
+pop [6]
+pop dx
+push 0.000000
+jb dx begin_if3:
+jmp begin_else3:
+begin_if3:
+push 10
+push 1986
+out
+jmp end_if3:
+begin_else3:
+pop [6]
+pop dx
+push 0.000000
+je dx begin_if4:
+jmp begin_else4:
+begin_if4:
+push 0.000000
+pop [1]
+push 2.000000
+pop [0]
+mul
+div
+sub
+push [3]
+pop [3]
+push [50]
+pop [50]
+out
+jmp end_if4:
+begin_else4:
+pop [6]
+push 0.500000
+deg
+push [7]
+push 0.000000
+pop [1]
+sub
+pop [7]
+add
+push 2.000000
+pop [0]
+mul
+div
+push [4]
+push 0.000000
+pop [1]
+sub
+pop [7]
+sub
+push 2.000000
+pop [0]
+mul
+div
+push [5]
+pop [4]
+pop [5]
+push [50]
+push [51]
+pop [51]
+out
+pop [50]
+out
+end_else4:
+end_if4:
+end_else3:
+end_if3:
+end_else1:
+end_if1:
 hlt

@@ -86,7 +86,8 @@ enum Programm_operators
     OPERATOR_CURLY_BRACKET_CLOSE  = 8,
     OPERATOR_SQUARE_BRACKET_OPEN  = 9,
     OPERATOR_SQUARE_BRACKET_CLOSE = 10,
-    OPERATOR_COMMA                = 11
+    OPERATOR_COMMA                = 11,
+    OPERATOR_ELSE                 = 12
 };
 
 enum Comparison_operations
