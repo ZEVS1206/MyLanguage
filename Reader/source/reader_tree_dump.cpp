@@ -104,13 +104,14 @@ static char * get_type_name(Value_type type)
 {
     switch(type)
     {
-        case VARIABLE:          return "VARIABLE";
-        case NUMBER:            return "NUMBER";
-        case OPERATION:         return "OPERATION";
-        case FUNCTION:          return "FUNCTION";
-        case OPERATOR:          return "OPERATOR";
-        case COMP_OPERATION:    return "COMP_OPERATION";
-        case BUILT_IN_FUNCTION: return "BUILT_IN_FUNCTION";
+        case VARIABLE:           return "VARIABLE";
+        case NUMBER:             return "NUMBER";
+        case OPERATION:          return "OPERATION";
+        case FUNCTION:           return "FUNCTION";
+        case OPERATOR:           return "OPERATOR";
+        case COMP_OPERATION:     return "COMP_OPERATION";
+        case BUILT_IN_FUNCTION:  return "BUILT_IN_FUNCTION";
+        case CALLER_OF_FUNCTION: return "CALLER_OF_FUNCTION";
         default:             return "UNKNOWN TYPE!";
     }
 }
@@ -136,6 +137,7 @@ static const char * get_operator(Programm_operators operator_)
         case OPERATOR_END:        return ";";
         case OPERATOR_COMMA:      return ",";
         case OPERATOR_ELSE:       return "else";
+        case OPERATOR_DEF:        return "def";
         default:                  return "UNKNOWN OPERATOR!";
     }
 }
@@ -175,7 +177,7 @@ static void get_value(struct Value *value, char *str)
         memcpy(str, value->variable_name, strlen(value->variable_name));
         return;
     }
-    else if (value->type == FUNCTION || value->type == BUILT_IN_FUNCTION)
+    else if (value->type == FUNCTION || value->type == BUILT_IN_FUNCTION || value->type == CALLER_OF_FUNCTION)
     {
         memcpy(str, value->function_name, strlen(value->function_name));
         return;

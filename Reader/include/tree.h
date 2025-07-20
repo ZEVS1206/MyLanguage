@@ -47,14 +47,15 @@ enum Function_name
 
 enum Value_type
 {
-    UNKNOWN_TYPE      = 0,
-    VARIABLE          = 1,
-    NUMBER            = 2,
-    OPERATION         = 3,
-    FUNCTION          = 4,
-    OPERATOR          = 5,
-    COMP_OPERATION    = 6,
-    BUILT_IN_FUNCTION = 7
+    UNKNOWN_TYPE       = 0,
+    VARIABLE           = 1,
+    NUMBER             = 2,
+    OPERATION          = 3,
+    FUNCTION           = 4,
+    OPERATOR           = 5,
+    COMP_OPERATION     = 6,
+    BUILT_IN_FUNCTION  = 7,
+    CALLER_OF_FUNCTION = 8
 };
 
 enum Variables
@@ -87,7 +88,8 @@ enum Programm_operators
     OPERATOR_SQUARE_BRACKET_OPEN  = 9,
     OPERATOR_SQUARE_BRACKET_CLOSE = 10,
     OPERATOR_COMMA                = 11,
-    OPERATOR_ELSE                 = 12
+    OPERATOR_ELSE                 = 12,
+    OPERATOR_DEF                  = 13
 };
 
 enum Comparison_operations

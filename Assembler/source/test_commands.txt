@@ -28,7 +28,7 @@ else
         if (D == 0)
         {
             x = (-(b / (2 * a)));
-            print(x, 20);
+            print(x);
         }
         else
         {
