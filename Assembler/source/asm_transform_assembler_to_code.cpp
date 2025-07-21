@@ -36,7 +36,9 @@ static Errors_of_ASM new_parse_jump_cmds(struct ASM *Asm, size_t index)
     {
         if (strcasecmp((Asm->commands)[index].label_name, ((Asm->table)->labels)[k].name) == 0)
         {
+            //printf("label = %s\n", ((Asm->table)->labels)[k].name);
             (Asm->commands)[index].element = (double)((Asm->table)->labels)[k].address;
+            //printf("address = %lf\n", (Asm->commands)[index].element);
             break;
         }
     }
@@ -99,7 +101,7 @@ static Errors_of_ASM parse_word(struct ASM *Asm, int *step, size_t len, size_t i
     }
     if ((Asm->commands)[index].command[len - 1] == ':')
     {
-        //printf("label = %s\n", (Asm->commands)[index].command);
+        //printf("label_name = %s\n", (Asm->commands)[index].command);
         error = parse_label(Asm, step, index, all_labels, size_of_all_labels);
 
         // printf("\n\n");
@@ -173,8 +175,15 @@ static Errors_of_ASM parse_label(struct ASM *Asm, int *step, size_t index, struc
                 if (strcasecmp((Asm->commands)[index].command, (all_labels[k]).name) == 0)
                 {
                     memcpy(((Asm->table)->labels)[j].name, (all_labels[k]).name, strlen((all_labels[k]).name));
-                    ((Asm->table)->labels)[j].address = *step - 1;
-                    //printf("label = %s\naddress = %d\n", ((Asm->table)->labels)[j].name, ((Asm->table)->labels)[j].address);
+                    if (*step != 0)
+                    {
+                        ((Asm->table)->labels)[j].address = *step - 1;
+                    }
+                    else
+                    {
+                        ((Asm->table)->labels)[j].address = 0;
+                    }
+                    //printf("label_name = %s\naddress = %d\n", ((Asm->table)->labels)[j].name, ((Asm->table)->labels)[j].address);
                     fl = 1;
                     break;
                 }

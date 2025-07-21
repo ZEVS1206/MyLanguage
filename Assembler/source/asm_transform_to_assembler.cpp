@@ -11,16 +11,21 @@ static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Special
 static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements); // struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void process_operator_assignment(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);// struct Label **all_variables);
 static void process_built_in_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements); //struct Label **all_variables);
-static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres);
-static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres);
-static void process_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements);//struct Label **all_variables);
+static void process_caller_of_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);
+static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres, Value_type type);
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres, Value_type type);
+static void process_global_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements);
+static void process_local_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements);//struct Label **all_variables);
 static void process_operation(struct Value *value, FILE *file_pointer);
 static void process_operator_if(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);//struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void process_operator_else(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements); //struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
 static void process_comparison_expression(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, Programm_operators operator_);//struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, Programm_operators operator_);
-static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);//struct Label **all_variables, struct Labels **all_labels);
+static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, Value_type type);//struct Label **all_variables, struct Labels **all_labels);
 static void process_comparison_operation(struct Value *value, FILE *file_pointer);
 static void process_operator_while(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements); //struct Label **all_variables, struct Labels **all_labels, size_t *counter_of_if, size_t *counter_of_while, struct MyStack *stack_if, struct MyStack *stack_while);
+static void process_definition_of_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);
+static void process_operator_return(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements);
+static void get_local_memory(struct Value *value, struct Special_elements_for_processing *elements);
 
 
 Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels **all_labels)
@@ -45,6 +50,19 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     {
         ((elements.all_variables)[index]).address = -1;
     }
+    elements.all_functions = (struct Function_type *) calloc(SIZE_OF_ALL_VARIABLES, sizeof(struct Function_type));
+    if (elements.all_functions == NULL)
+    {
+        return ERROR_OF_OPERATE_TREE;
+    }
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        ((elements.all_functions)[index]).all_local_variables = (struct Label *) calloc (SIZE_OF_ALL_VARIABLES, sizeof(struct Label));
+        if (((elements.all_functions)[index]).all_local_variables == NULL)
+        {
+            return ERROR_OF_OPERATE_TREE;
+        }
+    }
     // struct MyStack stack_if = {0};
     // struct MyStack stack_while = {0};
     Errors error = NO_ERRORS;
@@ -66,17 +84,32 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
         fprintf(stderr, "error of stack = %d\n", error);
         abort();
     }
+    error = STACK_CTOR(&(elements.current_function), 10);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
     elements.counter_of_if = 0;
     elements.counter_of_while = 0;
     elements.counter_of_else = 0;
+    elements.start_local_memory_address = LOCAL_MEMORY_START_ADDRESS;
+    elements.is_body_of_functions = false;
+    elements.is_assignment = false;
     // size_t counter_of_if = 0;
     // size_t counter_of_while = 0;
+    fprintf(file_pointer, "jmp start:\n");
     bypass_of_tree(tree->root, file_pointer, &elements);// &all_variables, all_labels, &counter_of_if, &counter_of_while, &stack_if, &stack_while);
     // fprintf(file_pointer, "pop [0]\n");
     // fprintf(file_pointer, "out\n");
     *all_labels = elements.all_labels;
     fprintf(file_pointer, "hlt\n");
     free(elements.all_variables);
+    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        free(((elements.all_functions)[index]).all_local_variables);
+    }
+    free(elements.all_functions);
     fclose(file_pointer);
     error = stack_destructor(&(elements.stack_if));
     if (error != NO_ERRORS)
@@ -91,6 +124,12 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
         abort();
     }
     error = stack_destructor(&(elements.stack_else));
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    error = stack_destructor(&(elements.current_function));
     if (error != NO_ERRORS)
     {
         fprintf(stderr, "error of stack = %d\n", error);
@@ -115,7 +154,8 @@ static void bypass_of_tree(struct Node *root, FILE *file_pointer, struct Special
     choose_way_of_operating(root, file_pointer, elements); //all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
     if ((root->value).type != OPERATOR ||
         ((root->value).operator_ != OPERATOR_IF &&
-         (root->value).operator_ != OPERATOR_WHILE))
+         (root->value).operator_ != OPERATOR_WHILE &&
+         (root->value).operator_ != OPERATOR_DEF))
     {
         bypass_of_tree(root->right, file_pointer, elements);// all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
     }
@@ -152,6 +192,17 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
                 process_operator_while(root, file_pointer, elements);//all_variables, all_labels, counter_of_if, counter_of_while, stack_if, stack_while);
                 return;
             }
+            case OPERATOR_DEF:
+            {
+                process_definition_of_function(root, file_pointer, elements);
+                return;
+            }
+            case OPERATOR_RETURN:
+            {
+                process_operator_return(root, file_pointer, elements);
+                return;
+
+            }
             default: return;
         }
     }
@@ -161,10 +212,17 @@ static void choose_way_of_operating(struct Node *root, FILE *file_pointer, struc
         //getchar();
         process_built_in_function(root, file_pointer, elements); //all_variables);
     }
+    else if ((root->value).type == CALLER_OF_FUNCTION)
+    {
+        
+        process_caller_of_function(root, file_pointer, elements);
+        
+    }
     else 
     {
         return;
     }
+    return;
 }
 
 static void process_operator_while(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
@@ -175,6 +233,7 @@ static void process_operator_while(struct Node *root, FILE *file_pointer, struct
         abort();
     }
     (elements->counter_of_while)++;
+    elements->is_assignment = false;
     Errors error = stack_push(&(elements->stack_while), (double)(elements->counter_of_while));
     if (error != NO_ERRORS)
     {
@@ -233,6 +292,7 @@ static void process_operator_if(struct Node *root, FILE *file_pointer, struct Sp
         abort();
     }
     (elements->counter_of_if)++;
+    elements->is_assignment = false;
     Errors error = stack_push(&(elements->stack_if), (double)(elements->counter_of_if));
     if (error != NO_ERRORS)
     {
@@ -289,6 +349,7 @@ static void process_operator_else(struct Node *root, FILE *file_pointer, struct 
         return;
     }
     (elements->counter_of_else)++;
+    elements->is_assignment = false;
     Errors error = stack_push(&(elements->stack_else), (elements->counter_of_else));
     if (error != NO_ERRORS)
     {
@@ -323,7 +384,7 @@ static void process_operator_else(struct Node *root, FILE *file_pointer, struct 
     const size_t current_len_begin = strlen(str_begin);
     const size_t current_len_end = strlen(str_end);
     snprintf(str_begin + current_len_begin, sizeof(str_begin) - current_len_begin, "%lu:", (size_t)element);
-    snprintf(str_end + current_len_end, sizeof(str_end) - current_len_end, "%d:", (size_t)element);
+    snprintf(str_end + current_len_end, sizeof(str_end) - current_len_end, "%lu:", (size_t)element);
     size_t index = 0;
     while (index < SIZE_OF_ALL_VARIABLES && strlen(((elements->all_labels)[index]).name) != 0)
     {
@@ -343,13 +404,6 @@ static void process_operator_else(struct Node *root, FILE *file_pointer, struct 
     bypass_of_tree(root->right, file_pointer, elements);
     if ((elements->stack_else).size != 0)
     {
-        // Stack_Elem_t element = 0;
-        // error = stack_pop(&(elements->stack_else), &element);
-        // if (error != NO_ERRORS)
-        // {
-        //     fprintf(stderr, "error of stack = %d\n", error);
-        //     abort();
-        // }
         fprintf(file_pointer, "end_else%lu:\n", (size_t)element);
         while (index < SIZE_OF_ALL_VARIABLES && strlen(((elements->all_labels)[index]).name) != 0)
         {
@@ -363,6 +417,59 @@ static void process_operator_else(struct Node *root, FILE *file_pointer, struct 
     }
     return;
 
+}
+
+static void get_local_memory(struct Value *value, struct Special_elements_for_processing *elements)
+{
+    if (value == NULL || elements == NULL)
+    {
+        fprintf(stderr, "ERROR OF GETTING LOCAL MEMORY\n");
+        abort();
+    }
+    bool flag = false;
+    bool is_overflow = true;
+    size_t id = 0;
+    for (id = 0; id < SIZE_OF_ALL_VARIABLES; id++)
+    {
+        //printf("function name = %s\n", (elements->all_functions)[id].function_name);
+        if (strcasecmp((elements->all_functions)[id].function_name, value->function_name) == 0)
+        {
+            flag = true;
+            is_overflow = false;
+            break;
+        }
+        else if (strlen((elements->all_functions)[id].function_name) == 0)
+        {
+            strncpy((elements->all_functions)[id].function_name, value->function_name, strlen(value->function_name));
+            //printf("start_local_memory_address = %lu\n", elements->start_local_memory_address);
+            if (elements->start_local_memory_address < RAM_SIZE)
+            {
+                is_overflow = false;
+            }
+            (elements->all_functions)[id].start_local_memory_address = elements->start_local_memory_address;
+            flag = true;
+            break;
+        }
+    }
+    //printf("\n\n");
+    if (!flag)
+    {
+        fprintf(stderr, "Error! There is not enough memory in array all functions\n");
+        abort();
+    }
+    if (is_overflow)
+    {
+        fprintf(stderr, "Error! This is overflow of ram memory\n");
+        abort();
+    }
+    Errors error = stack_push(&(elements->current_function), (Stack_Elem_t)id);
+    //printf("elements->current_function = %lf\n", (Stack_Elem_t)id);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    return;
 }
 
 static void process_built_in_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
@@ -380,35 +487,28 @@ static void process_built_in_function(struct Node *root, FILE *file_pointer, str
     {
         return;
     }
-    // bool is_built_in = false;
-    // for (size_t index = 0; index < size_of_built_in_functions; index++)
-    // {
-    //     if (strcasecmp((root->value).function_name, built_in_functions[index]) == 0)
-    //     {
-    //         is_built_in = true;
-    //         break;
-    //     }
-    // }
-    // if (!is_built_in)
-    // {
-    //     fprintf(stderr, "ERROR! Function %s is not built in and has not definition\n", (root->value).function_name);
-    //     abort();
-    // }
-    // if ((root->value).type != BUILT_IN_FUNCTION)
-    // {
-    //     fprintf(stderr, "ERROR! Function %s is not built in and has not definition\n", (root->value).function_name);
-    //     abort();
-    // }
+    get_local_memory(&(root->value), elements);
+    Stack_Elem_t element = 0;
+    Errors error = stack_pop(&(elements->current_function), &element);
+    size_t id = (size_t)element;
+    elements->is_assignment = false;
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
     if (strcasecmp((root->value).function_name, "input") == 0)
     {
         fprintf(file_pointer, "in\n");
     }
-
     size_t counter_of_parametres = 0;
-    process_expression_after_assignment(root->left, file_pointer, elements, &counter_of_parametres); //all_variables, &counter_of_parametres);
-    add_parametres_for_function(root->right, file_pointer, elements, &counter_of_parametres); //all_variables, &counter_of_parametres);
+    process_expression_after_assignment(root->left, file_pointer, elements, &counter_of_parametres, BUILT_IN_FUNCTION); //all_variables, &counter_of_parametres);
+    add_parametres_for_function(root->right, file_pointer, elements, &counter_of_parametres, BUILT_IN_FUNCTION); //all_variables, &counter_of_parametres);
+    (elements->all_functions)[id].end_local_memory_address = counter_of_parametres + (elements->all_functions)[id].start_local_memory_address;
+    //printf("start_address = %lu\nend_address = %lu\n", (elements->all_functions)[id].start_local_memory_address, (elements->all_functions)[id].end_local_memory_address);
+    elements->start_local_memory_address = (elements->all_functions)[id].end_local_memory_address + 1;
     size_t index = 0;
-    for (index = LOCAL_MEMORY_START_ADDRESS; index < (counter_of_parametres + LOCAL_MEMORY_START_ADDRESS) && index < RAM_SIZE; index++)
+    for (index = (elements->all_functions)[id].start_local_memory_address; index < (elements->all_functions)[id].end_local_memory_address && index < RAM_SIZE; index++)
     {
         fprintf(file_pointer, "push [%lu]\n", index);
     }
@@ -421,7 +521,7 @@ static void process_built_in_function(struct Node *root, FILE *file_pointer, str
             fprintf(file_pointer, "push %d\n", TOXIC + 1);
             fprintf(file_pointer, "out\n");
         }
-        for (; index >= LOCAL_MEMORY_START_ADDRESS; index--)
+        for (; index >= (elements->all_functions)[id].start_local_memory_address; index--)
         {
             fprintf(file_pointer, "pop [%lu]\n", index);
             fprintf(file_pointer, "out\n");
@@ -429,8 +529,177 @@ static void process_built_in_function(struct Node *root, FILE *file_pointer, str
     }
     return;
 }
+static void process_definition_of_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING DEFINITION OF FUNCTION\n");
+        abort();
+    }
+    if (!root->is_processed)
+    {
+        root->is_processed = true;
+    }
+    else
+    {
+        return;
+    }
+    elements->is_body_of_functions = true;
+    elements->is_assignment = false;
+    struct Node *function = root->left;
+    get_local_memory(&(function->value), elements);
+    size_t current_len = strlen((function->value).function_name);
+    snprintf((function->value).function_name + current_len, sizeof((function->value).function_name) - current_len, ":");
+    fprintf(file_pointer, "%s\n", (function->value).function_name);
+    size_t index = 0;
+    while (index < SIZE_OF_ALL_VARIABLES && strlen(((elements->all_labels)[index]).name) != 0)
+    {
+        if (strcasecmp((function->value).function_name, ((elements->all_labels)[index]).name) == 0)
+        {
+            index = SIZE_OF_ALL_VARIABLES;
+        }
+        index++;
+    }
+    if (index < SIZE_OF_ALL_VARIABLES)
+    {
+        strncpy(((elements->all_labels)[index]).name, (function->value).function_name, strlen((function->value).function_name));
+        index++;
+    }
+    Stack_Elem_t element = 0;
+    Errors error = stack_element(&(elements->current_function), &element);
+    size_t id = (size_t)element;
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    size_t counter_of_parametres = 0;
+    process_expression_after_assignment(function->left, file_pointer, elements, &counter_of_parametres, FUNCTION);
+    add_parametres_for_function(function->right, file_pointer, elements, &counter_of_parametres, FUNCTION);
+    (elements->all_functions)[id].is_parametres_processed = true;
+    (elements->all_functions)[id].end_local_memory_address = (counter_of_parametres + (elements->all_functions)[id].start_local_memory_address) * 4;
+    //printf("start_address = %lu\nend_address = %lu\n", (elements->all_functions)[id].start_local_memory_address, (elements->all_functions)[id].end_local_memory_address);
+    elements->start_local_memory_address = (elements->all_functions)[id].end_local_memory_address + 1;
+    if (counter_of_parametres != 0)
+    {
+        for (size_t address = counter_of_parametres + (elements->all_functions)[id].start_local_memory_address - 1; address >= (elements->all_functions)[id].start_local_memory_address; address--)
+        {
+            fprintf(file_pointer, "push [%lu]\n", address);
+        }
+    }
+    bypass_of_tree(root->right, file_pointer, elements);
+    elements->is_body_of_functions = false;
+    error = stack_pop(&(elements->current_function), &element);
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    if (root->is_last_function)
+    {
+        char start_str[50] = "start:";
+        fprintf(file_pointer, "%s\n", start_str);
+        size_t index = 0;
+        while (index < SIZE_OF_ALL_VARIABLES && strlen(((elements->all_labels)[index]).name) != 0)
+        {
+            if (strcasecmp(start_str, ((elements->all_labels)[index]).name) == 0)
+            {
+                index = SIZE_OF_ALL_VARIABLES;
+            }
+            index++;
+        }
+        if (index < SIZE_OF_ALL_VARIABLES)
+        {
+            strncpy(((elements->all_labels)[index]).name, start_str, strlen(start_str));
+            index++;
+        }
+    }
+    bypass_of_tree(root->node_after_operator, file_pointer, elements);
+    return;
+}
 
-static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres)
+static void process_operator_return(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING OPERATOR RETURN\n");
+        abort();
+    }
+    size_t counter_of_parametres = 0;
+    process_expression_after_assignment(root->left, file_pointer, elements, &counter_of_parametres, OPERATOR);
+    Stack_Elem_t element = 0;
+    elements->is_assignment = false;
+    Errors error = stack_element(&(elements->current_function), &element);
+    size_t index = (size_t)element;
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    size_t current_len = strlen((elements->all_functions)[index].function_name);
+    char str[50] = "caller_";
+    size_t len_of_call = strlen(str);
+    snprintf(str + len_of_call, sizeof(str) - len_of_call, "%s", (elements->all_functions)[index].function_name);
+    snprintf(str + len_of_call + current_len, sizeof(str) - len_of_call - current_len, ":");
+    size_t id = 0;
+    while (id < SIZE_OF_ALL_VARIABLES && strlen(((elements->all_labels)[id]).name) != 0)
+    {
+        if (strcasecmp(str, ((elements->all_labels)[id]).name) == 0)
+        {
+            id = SIZE_OF_ALL_VARIABLES;
+        }
+        id++;
+    }
+    if (id < SIZE_OF_ALL_VARIABLES)
+    {
+        strncpy(((elements->all_labels)[id]).name, str, strlen(str));
+    }
+    fprintf(file_pointer, "jmp %s\n", str);
+    return;
+}
+static void process_caller_of_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
+{
+    if (root == NULL || file_pointer == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING CALLER OF FUNCTION\n");
+        abort();
+    }
+    if (!root->is_processed)
+    {
+        root->is_processed = true;
+    }
+    else
+    {
+        return;
+    }
+    if (!elements->is_assignment)
+    {
+        size_t counter_of_parametres = 0;
+        process_expression_after_assignment(root->left, file_pointer, elements, &counter_of_parametres, CALLER_OF_FUNCTION); //all_variables, &counter_of_parametres);
+        add_parametres_for_function(root->right, file_pointer, elements, &counter_of_parametres, CALLER_OF_FUNCTION); //all_variables, &counter_of_parametres);
+    }
+    bool is_exists = false;
+    size_t index = 0;
+    for (index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    {
+        if (strcasecmp((elements->all_functions)[index].function_name, (root->value).function_name) == 0)
+        {
+            is_exists = true;
+            break;
+        }
+    }
+    if (!is_exists)
+    {
+        fprintf(stderr, "Error! Definition of function %s is not exists\n", (root->value).function_name);
+        abort();
+    }
+    fprintf(file_pointer, "jmp %s:\n", (root->value).function_name);
+    fprintf(file_pointer, "caller_%s:\n", (root->value).function_name);
+    return;
+}
+
+
+static void add_parametres_for_function(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres, Value_type type)
 {
     if (root == NULL)
     {
@@ -442,8 +711,8 @@ static void add_parametres_for_function(struct Node *root, FILE *file_pointer, s
         fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
         abort();
     }
-    add_parametres_for_function(root->left, file_pointer, elements, counter_of_parametres); //all_variables, counter_of_parametres);
-    add_parametres_for_function(root->right, file_pointer, elements, counter_of_parametres); //all_variables, counter_of_parametres);
+    add_parametres_for_function(root->left, file_pointer, elements, counter_of_parametres, type); //all_variables, counter_of_parametres);
+    add_parametres_for_function(root->right, file_pointer, elements, counter_of_parametres, type); //all_variables, counter_of_parametres);
     switch ((root->value).type)
     {
         case NUMBER:
@@ -454,7 +723,14 @@ static void add_parametres_for_function(struct Node *root, FILE *file_pointer, s
         }
         case VARIABLE:
         {
-            process_variable(&(root->value), file_pointer, elements);//all_variables);
+            if (!elements->is_body_of_functions)
+            {
+                process_global_variable(&(root->value), file_pointer, elements);
+            }
+            else
+            {
+                process_local_variable(&(root->value), file_pointer, elements);
+            }
             (*counter_of_parametres)++;
             return;
         }
@@ -491,25 +767,56 @@ static void process_operator_assignment(struct Node *root, FILE *file_pointer, s
         fprintf(stderr, "ERROR OF PROCESSING OPERATOR ASSIGNMENT\n");
         abort();
     }
+    Stack_Elem_t element = 0;
+    Errors error = stack_element(&(elements->current_function), &element);
+    size_t id = (size_t)element;
+    elements->is_assignment = true;
     int ram_address = -1;
     bool is_exits = false;
     int empty_index = 0;
-    for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
+    if (!elements->is_body_of_functions)
     {
-        if (strcasecmp(((root->left)->value).variable_name, ((elements->all_variables)[index]).name) == 0)
+        for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
         {
-            ram_address = ((elements->all_variables)[index]).address;
-            is_exits = true;
-            break;
+            if (strcasecmp(((root->left)->value).variable_name, ((elements->all_variables)[index]).name) == 0)
+            {
+                ram_address = ((elements->all_variables)[index]).address;
+                is_exits = true;
+                break;
+            }
+            if (((elements->all_variables)[index]).address == -1)
+            {
+                empty_index = index;
+                break;
+            }
         }
-        if (((elements->all_variables)[index]).address == -1)
+    }
+    else
+    {
+        for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
         {
-            empty_index = index;
-            break;
+            if (strcasecmp(((root->left)->value).variable_name, ((elements->all_functions)[id]).all_local_variables[index].name) == 0)
+            {
+                ram_address = (((elements->all_functions)[id]).all_local_variables[index]).address;
+                is_exits = true;
+                break;
+            }
+            else
+            {
+                if (strlen(((elements->all_functions)[id]).all_local_variables[index].name) == 0)
+                {
+                    is_exits = true;
+                    strncpy((((elements->all_functions)[id]).all_local_variables)[index].name, ((root->left)->value).variable_name, strlen(((root->left)->value).variable_name));
+                    (((elements->all_functions)[id]).all_local_variables)[index].address = (int)(((elements->all_functions)[id]).start_local_memory_address + index);
+                    ram_address = (((elements->all_functions)[id]).all_local_variables)[index].address;
+                    break;
+                }
+            }
+            
         }
     }
     size_t counter_of_parametres = 0;
-    process_expression_after_assignment(root->right, file_pointer, elements, &counter_of_parametres);
+    process_expression_after_assignment(root->right, file_pointer, elements, &counter_of_parametres, OPERATOR);
     if (!is_exits)
     {
         ((elements->all_variables)[empty_index]).address = empty_index;
@@ -521,7 +828,7 @@ static void process_operator_assignment(struct Node *root, FILE *file_pointer, s
     return;
 }
 
-static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres)
+static void process_expression_after_assignment(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, size_t *counter_of_parametres, Value_type type)
 {
     if (root == NULL)
     {
@@ -533,8 +840,8 @@ static void process_expression_after_assignment(struct Node *root, FILE *file_po
         abort();
     }
 
-    process_expression_after_assignment((root->left), file_pointer, elements, counter_of_parametres);
-    process_expression_after_assignment((root->right), file_pointer, elements, counter_of_parametres);
+    process_expression_after_assignment((root->left), file_pointer, elements, counter_of_parametres, type);
+    process_expression_after_assignment((root->right), file_pointer, elements, counter_of_parametres, type);
     switch ((root->value).type)
     {
         case NUMBER:
@@ -545,7 +852,14 @@ static void process_expression_after_assignment(struct Node *root, FILE *file_po
         }
         case VARIABLE:
         {
-            process_variable(&(root->value), file_pointer, elements);
+            if (!elements->is_body_of_functions)
+            {
+                process_global_variable(&(root->value), file_pointer, elements);
+            }
+            else
+            {
+                process_local_variable(&(root->value), file_pointer, elements);
+            }
             (*counter_of_parametres)++;
             return;
         }
@@ -557,9 +871,13 @@ static void process_expression_after_assignment(struct Node *root, FILE *file_po
         }
         case BUILT_IN_FUNCTION:
         {
-            //printf("call process_built_in_function from process_expression_after_assignment with function = %s\n", (root->value).function_name);
-            //getchar();
             process_built_in_function(root, file_pointer, elements);
+            (*counter_of_parametres)++;
+            return;
+        }
+        case CALLER_OF_FUNCTION:
+        {
+            process_caller_of_function(root, file_pointer, elements);
             (*counter_of_parametres)++;
             return;
         }
@@ -568,11 +886,63 @@ static void process_expression_after_assignment(struct Node *root, FILE *file_po
             fprintf(stderr, "ERROR OF UNKNOWN TYPE\n");
             abort();
         }
+        
     }
     return;
 }
 
-static void process_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements)
+static void process_local_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements)
+{
+    if (value == NULL || file_pointer == NULL || elements == NULL)
+    {
+        fprintf(stderr, "ERROR OF PROCESSING LOCAL VARIABLE\n");
+        abort();
+    }
+    Stack_Elem_t element = 0;
+    Errors error = stack_element(&(elements->current_function), &element);
+    size_t index = (size_t)element;
+    if (error != NO_ERRORS)
+    {
+        fprintf(stderr, "error of stack = %d\n", error);
+        abort();
+    }
+    //printf("value->variable_name = %s\n", value->variable_name);
+    bool is_added = false;
+    size_t id = 0;
+    for (id = 0; id < SIZE_OF_ALL_VARIABLES; id++)
+    {
+        //printf("variable name = %s\n", (((elements->all_functions)[index]).all_local_variables)[id].name);
+        if (strcasecmp((((elements->all_functions)[index]).all_local_variables)[id].name, value->variable_name) == 0)
+        {
+            is_added = true;
+            break;
+        }
+        if (strlen((((elements->all_functions)[index]).all_local_variables)[id].name) == 0)
+        {
+            is_added = true;
+            strncpy((((elements->all_functions)[index]).all_local_variables)[id].name, value->variable_name, strlen(value->variable_name));
+            (((elements->all_functions)[index]).all_local_variables)[id].address = (int)(((elements->all_functions)[index]).start_local_memory_address + id);
+            break;
+        }
+    }
+    if (!is_added)
+    {
+        fprintf(stderr, "Error! There is not enough memory in all_variables array for function %s\n", ((elements->all_functions)[index]).function_name);
+        abort();
+    }
+    if (!((elements->all_functions)[index]).is_parametres_processed)
+    {
+        return;
+    }
+
+    int address_of_variable = (((elements->all_functions)[index]).all_local_variables)[id].address;
+    fprintf(file_pointer, "pop [%d]\n", address_of_variable);
+    return;
+
+
+}
+
+static void process_global_variable(struct Value *value, FILE *file_pointer, struct Special_elements_for_processing *elements)
 {
     if (value == NULL || file_pointer == NULL || elements == NULL)
     {
@@ -580,7 +950,7 @@ static void process_variable(struct Value *value, FILE *file_pointer, struct Spe
         abort();
     }
     bool is_exists = false;
-    size_t address = -1;
+    int address = -1;
     for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
     {
         //printf("name of variable = %s\n", ((*all_variables)[index]).name);
@@ -598,6 +968,7 @@ static void process_variable(struct Value *value, FILE *file_pointer, struct Spe
         abort();
     }
     fprintf(file_pointer, "pop [%d]\n", address);
+
     return;
 }
 
@@ -694,9 +1065,9 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
         fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
         abort();
     }
-    process_expression_after_comparison(root->left, file_pointer, elements); //all_variables, all_labels);
+    process_expression_after_comparison(root->left, file_pointer, elements, OPERATION); //all_variables, all_labels);
     fprintf(file_pointer, "pop dx\n");
-    process_expression_after_comparison(root->right, file_pointer, elements); //all_variables, all_labels);
+    process_expression_after_comparison(root->right, file_pointer, elements, OPERATION); //all_variables, all_labels);
     process_comparison_operation(&(root->value), file_pointer);
     fprintf(file_pointer, "dx ");
     char str_begin[50] = "";
@@ -763,7 +1134,7 @@ static void process_comparison_expression(struct Node *root, FILE *file_pointer,
 }
 
 
-static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements)
+static void process_expression_after_comparison(struct Node *root, FILE *file_pointer, struct Special_elements_for_processing *elements, Value_type type)
 {
     if (root == NULL)
     {
@@ -774,8 +1145,8 @@ static void process_expression_after_comparison(struct Node *root, FILE *file_po
         fprintf(stderr, "ERROR OF CREATING ASM FILE\n");
         abort();
     }
-    process_expression_after_comparison(root->left, file_pointer, elements);//all_variables, all_labels);
-    process_expression_after_comparison(root->right, file_pointer, elements);//all_variables, all_labels);
+    process_expression_after_comparison(root->left, file_pointer, elements, type);//all_variables, all_labels);
+    process_expression_after_comparison(root->right, file_pointer, elements, type);//all_variables, all_labels);
     switch ((root->value).type)
     {
         case NUMBER:
@@ -785,7 +1156,14 @@ static void process_expression_after_comparison(struct Node *root, FILE *file_po
         }
         case VARIABLE:
         {
-            process_variable(&(root->value), file_pointer, elements);
+            if (!elements->is_body_of_functions)
+            {
+                process_global_variable(&(root->value), file_pointer, elements);
+            }
+            else
+            {
+                process_local_variable(&(root->value), file_pointer, elements);
+            }
             return;
         }
         case OPERATION:

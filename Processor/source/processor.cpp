@@ -282,7 +282,7 @@ Errors_of_CPU do_cmd(struct MySPU *spu)
                 Stack_Elem_t element = 0;
                 //error = stack_element(spu->stack, &element);
                 error = stack_pop(spu->stack, &element);
-
+                
                 if (compare(element, TOXIC + 1) == 0)
                 {
                     error = stack_pop(spu->stack, &element);

@@ -138,6 +138,7 @@ static const char * get_operator(Programm_operators operator_)
         case OPERATOR_COMMA:      return ",";
         case OPERATOR_ELSE:       return "else";
         case OPERATOR_DEF:        return "def";
+        case OPERATOR_RETURN:     return "return";
         default:                  return "UNKNOWN OPERATOR!";
     }
 }

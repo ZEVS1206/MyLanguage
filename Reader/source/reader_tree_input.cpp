@@ -35,6 +35,7 @@ static void get_function(struct Node **root, struct Node *lexical_analyze_array,
 static void get_functions_parametres(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_assignment_operator_or_function(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_if_or_while_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
+static void get_operator_return(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static void get_operator_else(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent);
 static size_t get_size_of_file(FILE *file_pointer);
 static char * get_value_from_file(char *str, size_t size_of_str, char *buffer, char *end_pointer);
@@ -467,6 +468,10 @@ static void get_definition_of_function(struct Node **root, struct Node *lexical_
         fprintf(stderr, "error = %d\n", error);
         abort();
     }
+    if ((node_after_operator->value).type != OPERATOR || (node_after_operator->value).operator_ != OPERATOR_DEF)
+    {
+        (*root)->is_last_function = true;
+    }
     ON_DEBUG(printf("index in get_definition_of_function = %d\n", *index);)
     ON_DEBUG(getchar();)
     return;
@@ -677,6 +682,32 @@ static void get_operator_else(struct Node **root, struct Node *lexical_analyze_a
     return;
 }
 
+static void get_operator_return(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
+{
+    if (*index >= len_of_lexical_analyze_array)
+    {
+        return;
+    }
+    struct Node *left_node  = NULL;
+    struct Node *right_node = NULL;
+    struct Value new_node_value = (lexical_analyze_array[*index]).value;
+    (*index)++;
+    ON_DEBUG(printf("go to get_staples_expression_or_number_or_variable from get_operator_return\n");)
+    ON_DEBUG(getchar();)
+    get_staples_expression_or_number_or_variable(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    ON_DEBUG(printf("go to get_operator from get_operator_return\n");)
+    ON_DEBUG(getchar();)
+    get_operator(&right_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+    Errors_of_tree error = create_new_node(root, &new_node_value, left_node, right_node);
+    if (error != NO_ERRORS_TREE)
+    {
+        fprintf(stderr, "error = %d\n", error);
+        abort();
+    }
+    ON_DEBUG(printf("index in get_operator_return = %d\n", *index);)
+    return;
+}
+
 
 static void get_operator(struct Node **root, struct Node *lexical_analyze_array, int len_of_lexical_analyze_array, int *index, struct Node *parent)
 {
@@ -690,6 +721,7 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
     //get_operator(&left_node, lexical_analyze_array, end_pointer, index, *root);
     // (*index)++;
     // (*lexical_analyze_array)++;
+    
     if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
         (((lexical_analyze_array[*index]).value).operator_ == OPERATOR_IF ||
          ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_WHILE))
@@ -701,20 +733,31 @@ static void get_operator(struct Node **root, struct Node *lexical_analyze_array,
     }
     else
     {
-        ON_DEBUG(printf("go to get_assignment_operator_or_function from get_operator\n");)
-        ON_DEBUG(getchar();)
-        //get_assignment_operator(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
-        get_assignment_operator_or_function(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
-        if (left_node != NULL && 
-            (left_node->value).type == OPERATOR && 
-            (left_node->value).operator_ == OPERATOR_DEF)
+        if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
+        ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_RETURN)
         {
-            if (*root != NULL)
-            {
-                free(*root);
-            }
-            *root = left_node;
+            ON_DEBUG(printf("go to get_operator_return from get_operator\n");)
+            ON_DEBUG(getchar();)
+            get_operator_return(root, lexical_analyze_array, len_of_lexical_analyze_array, index, parent);
             return;
+        }
+        else
+        {
+            ON_DEBUG(printf("go to get_assignment_operator_or_function from get_operator\n");)
+            ON_DEBUG(getchar();)
+            //get_assignment_operator(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+            get_assignment_operator_or_function(&left_node, lexical_analyze_array, len_of_lexical_analyze_array, index, *root);
+            if (left_node != NULL && 
+                (left_node->value).type == OPERATOR && 
+                (left_node->value).operator_ == OPERATOR_DEF)
+            {
+                if (*root != NULL)
+                {
+                    free(*root);
+                }
+                *root = left_node;
+                return;
+            }
         }
         if (((lexical_analyze_array[*index]).value).type == OPERATOR && 
             ((lexical_analyze_array[*index]).value).operator_ == OPERATOR_END)
@@ -1202,6 +1245,15 @@ static bool parse_operator_to_lexical_analyze_array(struct Node **lexical_analyz
         ON_DEBUG(printf("it is operator def\n");)
         ON_DEBUG(getchar();)
         ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_DEF;
+        (*lexical_analyze_array)++;
+        (*len_of_lexical_analyze_array)++;
+        return true;
+    }
+    if (strcasecmp(str, "return") == 0)
+    {
+        ON_DEBUG(printf("it is operator return\n");)
+        ON_DEBUG(getchar();)
+        ((*lexical_analyze_array[0]).value).operator_ = OPERATOR_RETURN;
         (*lexical_analyze_array)++;
         (*len_of_lexical_analyze_array)++;
         return true;

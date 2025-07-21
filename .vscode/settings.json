@@ -15,6 +15,10 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "system_error": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "charconv": "cpp",
+        "array": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     }
 }

@@ -89,7 +89,8 @@ enum Programm_operators
     OPERATOR_SQUARE_BRACKET_CLOSE = 10,
     OPERATOR_COMMA                = 11,
     OPERATOR_ELSE                 = 12,
-    OPERATOR_DEF                  = 13
+    OPERATOR_DEF                  = 13,
+    OPERATOR_RETURN               = 14
 };
 
 enum Comparison_operations
@@ -153,6 +154,7 @@ struct Node
     struct Node *node_after_operator;
     struct Node *node_for_operator_else;
     bool is_processed;
+    bool is_last_function;
 };
 
 struct Tree

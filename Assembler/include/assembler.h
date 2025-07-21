@@ -65,16 +65,30 @@ struct ASM
     FILE *file_pointer;
 };
 
+struct Function_type
+{
+    char function_name[100];
+    struct Label *all_local_variables;
+    size_t start_local_memory_address;
+    size_t end_local_memory_address;
+    bool is_parametres_processed;
+};
+
 struct Special_elements_for_processing
 {
+    struct MyStack current_function;
     size_t counter_of_if;
     size_t counter_of_while;
     size_t counter_of_else;
+    size_t start_local_memory_address;
     struct MyStack stack_if;
     struct MyStack stack_while;
     struct MyStack stack_else;
     struct Label *all_variables;
     struct Labels *all_labels;
+    struct Function_type *all_functions;
+    bool is_body_of_functions;
+    bool is_assignment;
 };
 
 
