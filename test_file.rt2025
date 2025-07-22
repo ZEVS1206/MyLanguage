@@ -1,15 +1,3 @@
-def fact(n)
-{
-    i = 1;
-    pr = 1;
-    while (i <= n)
-    {
-        pr = (pr * i);
-        i = (i + 1);
-    }
-    return pr;
-}
 x = input();
-ans = fact(x);
-print(ans);
+print(x);
 $

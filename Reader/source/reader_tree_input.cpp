@@ -10,6 +10,7 @@
 
 const char *built_in_functions[] = {"print", "input"};
 const size_t size_of_built_in_functions = sizeof(built_in_functions) / sizeof(char *);
+bool are_any_functions = false;
 
 //static void parse_information_from_file_by_staples(struct Node *root, char **buffer, char *end_pointer);
 static bool isbracket(const char symbol);
@@ -303,11 +304,7 @@ Errors_of_tree get_tree_from_file(struct Tree *tree, const char *file_source_nam
     ON_DEBUG(("len of lexical analyze array = %d\n", len_of_lexical_analyze_array);)
     ON_DEBUG(print_lexical_analyze_array(old_pointer, len_of_lexical_analyze_array);)
     parse_information_from_lexical_analyze_array_by_recursive_descent(&(tree->root),lexical_analyze_array, len_of_lexical_analyze_array, &index);
-    //print_lexical_analyze_array(old_pointer, size_of_file);
-    // printf("index:%d\nnode_type:%d\n", 0, ((lexical_analyze_array[0]).value).type);
-    //printf("index = %d\n", index);
-    //bypass_of_tree(tree->root);
-    //printf("tree->root = %p\n", tree->root);
+    tree->are_any_functions = are_any_functions;
 
     free(old_buffer);
     free(old_pointer);
@@ -433,6 +430,7 @@ static void get_definition_of_function(struct Node **root, struct Node *lexical_
     {
         return;
     }
+    are_any_functions = true;
     struct Value new_node_value = (lexical_analyze_array[*index]).value;
     (*index)++;
     struct Node *left_node = NULL;

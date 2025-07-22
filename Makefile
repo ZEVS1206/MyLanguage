@@ -6,11 +6,15 @@ FILE_CMD = Assembler/source/cpu_commands.txt
 dir_asm = ../assembler.exe
 dir_proc = ../processor.exe
 dir_read = ../reader.exe
+
 compile ?= all
 start ?= all
 cleaning ?= all
+file ?= test_file.rt2025
+
 
 start_proc = ./processor.exe
+real_start_asm = ./assembler.exe $(file)
 start_asm = ./assembler.exe
 start_reader = ./reader.exe
 
@@ -50,7 +54,7 @@ endif
 
 ifeq ($(cleaning), $(ASM))
 clean::
-	rm -rf $(start_asm)
+	rm -rf $(real_start_asm)
 	rm -rf $(dir_build_asm)
 else
 ifeq ($(cleaning), $(PROC))
@@ -80,7 +84,7 @@ endif
 
 ifeq ($(start), $(ASM))
 run::
-	$(start_asm)
+	$(real_start_asm)
 else
 ifeq ($(start), $(PROC))
 run::
@@ -91,7 +95,7 @@ else
 #	$(start_reader)
 #else
 run::
-	$(start_asm)
+	$(real_start_asm)
 	$(start_proc)
 #	$(start_reader)
 endif

@@ -5,7 +5,7 @@
 #include "tree_dump.h"
 #include "tree_input.h"
 
-Errors_of_tree tree_reader(struct Tree *tree)
+Errors_of_tree tree_reader(struct Tree *tree, const char *file_name)
 {
     Errors_of_tree error = NO_ERRORS_TREE;
     error = tree_constructor(tree);
@@ -13,7 +13,7 @@ Errors_of_tree tree_reader(struct Tree *tree)
     {
         return error;
     }
-    error = get_tree_from_file(tree, "test_file.rt2025"); //"../../test_file.rt");
+    error = get_tree_from_file(tree, file_name); //"../../test_file.rt");
     if (error != NO_ERRORS_TREE)
     {
         return error;
@@ -40,7 +40,7 @@ Errors_of_tree tree_reader(struct Tree *tree)
 // int main()
 // {
 //     struct Tree tree = {0};
-//     Errors_of_tree error = tree_reader(&tree);
+//     Errors_of_tree error = tree_reader(&tree, "test_file.rt2025");
 //     if (error != NO_ERRORS_TREE)
 //     {
 //         fprintf(stderr, "error = %d\n", error);

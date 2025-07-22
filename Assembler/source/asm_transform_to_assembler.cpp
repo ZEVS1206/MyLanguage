@@ -97,8 +97,27 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     elements.is_body_of_functions = false;
     elements.is_assignment = false;
     // size_t counter_of_if = 0;
-    // size_t counter_of_while = 0;
+    // size_t counter_of_while = 0; 
     fprintf(file_pointer, "jmp start:\n");
+    if (!tree->are_any_functions)
+    {
+        char start_str[50] = "start:";
+        fprintf(file_pointer, "%s\n", start_str);
+        size_t index = 0;
+        while (index < SIZE_OF_ALL_VARIABLES && strlen(((elements.all_labels)[index]).name) != 0)
+        {
+            if (strcasecmp(start_str, ((elements.all_labels)[index]).name) == 0)
+            {
+                index = SIZE_OF_ALL_VARIABLES;
+            }
+            index++;
+        }
+        if (index < SIZE_OF_ALL_VARIABLES)
+        {
+            strncpy(((elements.all_labels)[index]).name, start_str, strlen(start_str));
+            index++;
+        }
+    }
     bypass_of_tree(tree->root, file_pointer, &elements);// &all_variables, all_labels, &counter_of_if, &counter_of_while, &stack_if, &stack_while);
     // fprintf(file_pointer, "pop [0]\n");
     // fprintf(file_pointer, "out\n");

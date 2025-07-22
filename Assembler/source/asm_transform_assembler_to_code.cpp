@@ -471,10 +471,11 @@ static Errors_of_ASM get_count_of_rows(struct ASM *Asm)
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
     struct Tree tree = {0};
-    Errors_of_tree error = tree_reader(&tree);
+    const char *file_name = argv[1];
+    Errors_of_tree error = tree_reader(&tree, file_name);
     if (error != NO_ERRORS_TREE)
     {  
         fprintf(stderr, "error of tree = %d\n", error);

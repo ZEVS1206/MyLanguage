@@ -1,41 +1,9 @@
 jmp start:
-fact:
-push [50]
-push 1.000000
-push [51]
-push 1.000000
-push [52]
-pop [51]
-pop dx
-pop [50]
-jbe dx begin_while1:
-jmp end_while1:
-begin_while1:
-pop [52]
-pop [51]
-mul
-push [52]
-pop [51]
-push 1.000000
-add
-push [51]
-pop [51]
-pop dx
-pop [50]
-jbe dx begin_while1:
-jmp end_while1:
-end_while1:
-pop [52]
-jmp caller_fact:
 start:
 in
 push [0]
 pop [0]
-jmp fact:
-caller_fact:
-push [1]
-pop [1]
-push [206]
-pop [206]
+push [51]
+pop [51]
 out
 hlt

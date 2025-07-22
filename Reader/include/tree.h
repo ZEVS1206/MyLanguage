@@ -162,6 +162,7 @@ struct Tree
     struct Node *root;
     struct Node *tmp_root;
     Errors_of_tree error;
+    bool are_any_functions;
 };
 
 const struct Function G_functions[] = {{"sin", FUNC_SIN, sin},
@@ -174,7 +175,7 @@ const size_t size_of_functions = sizeof(G_functions) / sizeof(Function);
 
 Errors_of_tree tree_constructor(struct Tree *tree);
 Errors_of_tree tree_destructor(struct Tree *tree);
-Errors_of_tree tree_reader(struct Tree *tree);
+Errors_of_tree tree_reader(struct Tree *tree, const char *file_name);
 void differentiation(struct Node *root, FILE *file_pointer);
 void calculation_of_tree(struct Node *root, FILE *file_pointer);
 Errors_of_tree create_new_node(struct Node **root, struct Value *value, struct Node *left, struct Node *right);
