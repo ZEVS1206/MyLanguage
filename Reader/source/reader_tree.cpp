@@ -13,7 +13,7 @@ Errors_of_tree tree_reader(struct Tree *tree)
     {
         return error;
     }
-    error = get_tree_from_file(tree, "../Reader/source/input.txt"); //"../../test_file.rt");
+    error = get_tree_from_file(tree, "test_file.rt2025"); //"../../test_file.rt");
     if (error != NO_ERRORS_TREE)
     {
         return error;
@@ -27,11 +27,7 @@ Errors_of_tree tree_reader(struct Tree *tree)
     graphic_dump(tree, "example");
     if (tree->error != NO_ERRORS_TREE)
     {
-        return error;
-    }
-    if (tree->error != NO_ERRORS_TREE)
-    {
-        return error;
+        return tree->error;
     }
     // error = tree_destructor(tree);
     // if (error != NO_ERRORS_TREE)

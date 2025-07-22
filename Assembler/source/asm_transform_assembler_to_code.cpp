@@ -349,7 +349,7 @@ Errors_of_ASM transform_commands(struct ASM *Asm, struct CMD *all_commands, size
 
 Errors_of_ASM create_file_with_commands(struct ASM *Asm)
 {
-    FILE *fp = fopen("source/cpu_commands.txt", "w");
+    FILE *fp = fopen("Assembler/source/cpu_commands.txt", "w");
     if (Asm == NULL || fp == NULL)
     {
         return ERROR_OF_CREATING_OUT_FILE;
@@ -476,8 +476,8 @@ int main()
     struct Tree tree = {0};
     Errors_of_tree error = tree_reader(&tree);
     if (error != NO_ERRORS_TREE)
-    {
-        fprintf(stderr, "error = %d\n", error);
+    {  
+        fprintf(stderr, "error of tree = %d\n", error);
         abort();
     }
     struct Labels *all_labels = (struct Labels *) calloc(SIZE_OF_ALL_VARIABLES, sizeof(struct Labels));
@@ -489,7 +489,7 @@ int main()
     Errors_of_ASM error_asm = transform_programm_to_assembler(&tree, &all_labels);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error = %d\n", error_asm);
+        fprintf(stderr, "error_asm = %d\n", error_asm);
         abort();
     }
     // for (size_t index = 0; index < SIZE_OF_ALL_VARIABLES; index++)
@@ -499,7 +499,6 @@ int main()
     
     printf("Assembler started!\n");
     //Errors_of_ASM error_asm = NO_ASM_ERRORS;
-
     struct CMD all_commands[] = {{"push",  CMD_PUSH},
                                  {"pop",   CMD_POP},
                                  {"add",   CMD_ADD},
@@ -542,7 +541,7 @@ int main()
 
 
     struct ASM Asm = {0};
-    (Asm.file_pointer) = fopen("source/asm_programm.txt", "rb");
+    (Asm.file_pointer) = fopen("Assembler/source/asm_programm.txt", "rb");
     if (Asm.file_pointer == NULL)
     {
         fprintf(stderr, "ERROR_OF_OPEN_FILE\n");
@@ -552,14 +551,15 @@ int main()
     //printf("count_of_rows = %lu\n", Asm.count_of_rows);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 
     error_asm = constructor(&Asm, size_of_all_labels);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 
@@ -576,28 +576,29 @@ int main()
     error_asm = repeat_get_commands(&Asm);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 
     error_asm = transform_commands(&Asm, all_commands, size_of_all_commands);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 
     error_asm = create_file_with_commands(&Asm);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        printf("Here\n");
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 
     error_asm = destructor(&Asm);
     if (error_asm != NO_ASM_ERRORS)
     {
-        fprintf(stderr, "error=%d\n", error_asm);
+        fprintf(stderr, "error_asm=%d\n", error_asm);
         return 1;
     }
 

@@ -34,7 +34,7 @@ Errors_of_ASM transform_programm_to_assembler(struct Tree *tree, struct Labels *
     {
         return ERROR_OF_OPERATE_TREE;
     }
-    FILE *file_pointer = fopen("source/asm_programm.txt", "w");
+    FILE *file_pointer = fopen("Assembler/source/asm_programm.txt", "w");
     if (file_pointer == NULL)
     {
         return ERROR_OF_CREATE_ASM_FILE;

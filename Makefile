@@ -35,17 +35,17 @@ ifeq ($(compile), $(PROC))
 all::
 	make -C $(FOLDER_PROCESSOR) dir=$(dir_proc)
 else
-ifeq ($(compile), $(READ))
-all::
-	make -C $(FOLDER_READER) dir=$(dir_read)
-else
+#ifeq ($(compile), $(READ))
+#all::
+#	make -C $(FOLDER_READER) dir=$(dir_read)
+#else
 all::
 	make -C $(FOLDER_ASSEMBLER) dir=$(dir_asm)
 	make -C $(FOLDER_PROCESSOR) dir=$(dir_proc)
-	make -C $(FOLDER_READER) dir=$(dir_read)
+#	make -C $(FOLDER_READER) dir=$(dir_read)
 endif
 endif
-endif
+#endif
 
 
 ifeq ($(cleaning), $(ASM))
@@ -70,9 +70,9 @@ clean::
 	rm -rf $(FILE_CMD)
 	rm -rf $(start_asm)
 	rm -rf $(start_proc)
-	rm -rf $(dir_build_reader)
-	rm -rf $(start_reader)
-	rm -rf $(dir_dump_reader)
+#	rm -rf $(dir_build_reader)
+#	rm -rf $(start_reader)
+#	rm -rf $(dir_dump_reader)
 endif
 endif
 endif
@@ -86,17 +86,17 @@ ifeq ($(start), $(PROC))
 run::
 	$(start_proc)
 else
-ifeq ($(start), $(READ))
-run::
-	$(start_reader)
-else
+#ifeq ($(start), $(READ))
+#run::
+#	$(start_reader)
+#else
 run::
 	$(start_asm)
 	$(start_proc)
-	$(start_reader)
+#	$(start_reader)
 endif
 endif
-endif
+#endif
 
 
 
